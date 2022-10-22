@@ -1,7 +1,7 @@
-"scanComplete" = "Sensor succesfully scanned";
-"holdTopOfIphoneNearSensor" = "Hold the top of your iPhone near the sensor to scan";
+"scanComplete" = "Sensor scan complete";
+"holdTopOfIphoneNearSensor" = "Hold the top of your iPhone near the sensor until it stops vibrating.";
 "deviceMustSupportNFC" = "This iPhone does not support NFC";
 "deviceMustSupportIOS14" = "To connect to Libre 2, this iPhone needs upgrading to iOS14";
-"donotusethelibrelinkapp" = "Connected via bluetooth to a Libre 2.\r\n\r\nIf you want to keeping scanning the sensor with the official Libre app, then you must disable bluetooth permission for the Libre app in your iPhone settings. \r\n\r\nIf you don't do this, when you scan the NFC with the Libre app you will break the connection between %@ and the Libre 2.";
-"connectedLibre2DoesNotMatchScannedLibre2" = "You have scanned a new Libre sensor, but %@ has connected via Bluetooth to a different sensor (probably the previous one).\n\nTo solve this do NOT delete this old sensor just yet. Click 'Disconnect' or 'Stop Scanning', go back to the previous screen and add a new CGM of type Libre 2 and scan the sensor again.\n\n%@ should now try and connect to the new sensor.\n\nIf you already deleted the old sensor from the app then before trying to add the new one again, stop the old one from transmitting by placing it in tin foil or in the microwave.";
-"nfcErrorRetryScan" = "NFC scan error. Click 'Stop Scanning' then click 'Connect' and scan again. This may take many attempts.";
+"donotusethelibrelinkapp" = "Connected to Libre 2.\n\nPlease ensure you have disabled bluetooth permission for the Libre app in your iPhone settings.\n\nIf you don't do this, when you scan with the Libre app you will break the connection between %@ and the Libre 2.";
+"connectedLibre2DoesNotMatchScannedLibre2" = "You have scanned a new Libre sensor, but %@ has connected to a different sensor (probably the previous one).\n\nTo solve this do NOT delete this old sensor just yet. Click 'Disconnect' or 'Stop Scanning', go back to the previous screen and add a new CGM of type Libre 2 and scan the sensor again.\n\n%@ should now try and connect to the new sensor.\n\nIf you already deleted the old sensor from the app then before trying to add the new one again, stop the old one from transmitting by placing it in tin foil or in the microwave.";
+"nfcErrorRetryScan" = "Sensor scan error";

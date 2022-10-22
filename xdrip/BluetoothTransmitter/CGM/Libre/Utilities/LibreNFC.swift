@@ -43,6 +43,8 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
     
     /// fixed unlock code to use
     private let unlockCode: UInt32 = 42
+    
+    private var failedToScan: Bool = false
 
     // MARK: - initalizer
     
@@ -78,7 +80,7 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
     
     func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         
-        xdrip.trace("NFC: session did become active", log: log, category: ConstantsLog.categoryLibreNFC, type: .info)
+        xdrip.trace("NFC: tag reader session did become active. Waiting to detect tag/sensor.", log: log, category: ConstantsLog.categoryLibreNFC, type: .info)
         
     }
     
@@ -86,11 +88,30 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
         
         if let readerError = error as? NFCReaderError {
             
-            if readerError.code != .readerSessionInvalidationErrorUserCanceled {
+            if (readerError.code != .readerSessionInvalidationErrorFirstNDEFTagRead)
+                        && (readerError.code != .readerSessionInvalidationErrorUserCanceled) {
+                
+                print("NFC Error Code: " + readerError.errorCode.description)
+                print("NFC Error Message: " + readerError.localizedDescription)
                 
                 trace(systemError: error, ownErrorString: "Connection failure:", invalidateSession: true, session: session)
                 
             }
+            
+            if failedToScan && !UserDefaults.standard.failedToScan {
+                
+                xdrip.trace("NFC: scan error. Will try to disconnect the transmitter.", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
+                
+                print("NFC scan failed, trying to trigger the observer")
+                
+                UserDefaults.standard.failedToScan = true
+                
+            } else {
+                print("NFC scan session closed")
+                
+                // TODO: add a UIAlert to ask if they want to really try connecting without a successful NFC scan
+            }
+            
         }
         
     }
@@ -131,8 +152,11 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
             
             let retries = ConstantsLibre.retryAttemptsForLibre2NFCScans
             var requestedRetry = 0
-            var failedToScan = false
+            //var failedToScan = false
 
+            failedToScan = false
+            UserDefaults.standard.failedToScan = false
+            UserDefaults.standard.scanSuccessful = false
             
             // get tag response
             repeat {
@@ -144,7 +168,7 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                     xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
                     session.alertMessage = "Sensor not found\n\nRetrying... # \(requestedRetry)/\(retries)"
                     AudioServicesPlaySystemSound(1519)    // "peek" vibration
-                    try await Task.sleep(nanoseconds: 250_000_000)
+                    try await Task.sleep(nanoseconds: 200_000_000)
                 } else {
                     xdrip.trace("NFC: connecting to tag", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 }
@@ -153,12 +177,15 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                     //connectedTag = tag
                 } catch {
                     if requestedRetry >= retries {
-//                        session.invalidate(errorMessage: "Connection failure: \(error.localizedDescription)")
-                        session.invalidate(errorMessage: "Sensor scan has failed (no sensor found)\n\nPlease go back and add the sensor again")
+//
+//                        failedToScan = true
+                        
+                        session.invalidate(errorMessage: "Sensor scan has failed (no sensor found)")
                         AudioServicesPlaySystemSound(1107)    // "failed" vibration
                         //log("NFC: stopped retrying to connect after \(requestedRetry) reattempts: \(error.localizedDescription)")
                         let debugInfo = "NFC:       fatal error: stopped trying to connect after \(requestedRetry) attempts: \(error.localizedDescription)"
-                        xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
+//                        xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
+                        UserDefaults.standard.failedToScan = true
                         return
                     }
                     failedToScan = true
@@ -194,14 +221,13 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                     patchInfo = Data(try await tag.customCommand(requestFlags: .highDataRate, customCommandCode: 0xA1, customRequestParameters: Data()))
                     //print("NFC: patch info (first reading): \(patchInfo.hex) (\(patchInfo.count) bytes), string: \"\(patchInfo.string)\"")
                     if requestedRetry > 0 {
-                        var debugInfo = "NFC:     calling A1 before sytemInfo retry attempt # \(requestedRetry)/\(retries)"
+                        let debugInfo = "NFC:     calling A1 before sytemInfo retry attempt # \(requestedRetry)/\(retries)"
                         xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
                     } else {
                         xdrip.trace("NFC:     calling A1 before sytemInfo", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                     }
                 } catch {
                     failedToScan = true
-//                    xdrip.trace("NFC:     error caught", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 }
                 
                 do {
@@ -217,15 +243,17 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                     let debugInfo = "NFC:     - error while getting tag systemInfo: \(error.localizedDescription)"
                     xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
                     if requestedRetry >= retries {
-//                        session.invalidate(errorMessage: "Error while getting system info: \(error.localizedDescription)")
-                        session.invalidate(errorMessage: "Sensor scan has failed (no valid information received)\n\nPlease go back and add the sensor again")
+                        
+//                        failedToScan = true
+                        
+                        session.invalidate(errorMessage: "Sensor scan has failed\n\nNo valid information retrieved")
+                        AudioServicesPlaySystemSound(1107)    // "failed" vibration
                         let debugInfo = "NFC:     - fatal error: stopped retrying to get tag systemInfo after \(requestedRetry) attempts"
                         xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
-                        AudioServicesPlaySystemSound(1107)    // "failed" vibration
+//                        UserDefaults.standard.failedToScan = true
                         return
                     }
                     failedToScan = true
-//                    xdrip.trace("NFC:     error caught", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                     requestedRetry += 1
                 }
                 
@@ -251,30 +279,10 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
             if !failedToScan {
                 session.alertMessage = TextsLibreNFC.scanComplete
                 xdrip.trace("NFC:     - scan successful. systemInfo and patchInfo retrieved.", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
+            } else {
+                UserDefaults.standard.failedToScan = true
             }
             
-            
-            //            tag.getSystemInfo(requestFlags: [.address, .highDataRate]) { result in
-            //
-            //                switch result {
-            //
-            //                case .failure(let error):
-            //
-            //                    self.trace(systemError: error, ownErrorString: "Error while getting system info:", invalidateSession: true, session: session)
-            //
-            //                    return
-            //
-            //                case .success(let systemInfo):
-            
-            //                    tag.customCommand(requestFlags: .highDataRate, customCommandCode: 0xA1, customRequestParameters: Data()) {
-            //
-            //                        response, error in
-            //
-            //                        if let error = error {
-            //
-            //                            self.trace(systemError: error, ownErrorString: "error while getting patch info:", invalidateSession: false, session: session)
-            //
-            //                        }
             
             for i in 0 ..< requests {
                 
@@ -338,6 +346,8 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                             
                             self.trace(systemError: nil, ownErrorString: TextsLibreNFC.nfcErrorRetryScan, invalidateSession: true, session: session)
                             
+                            self.failedToScan = true
+                            
                             return
                             
                         }
@@ -388,10 +398,15 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                                             
                                             self.libreNFCDelegate?.streamingEnabled(successful : true)
                                             
+                                            //self.failedToScan = false
+                                            
+                                            UserDefaults.standard.scanSuccessful = true
                                             
                                         } else {
                                             // enableStreaming failed ?
                                             self.libreNFCDelegate?.streamingEnabled(successful : false)
+                                            
+                                            self.failedToScan = true
                                             
                                         }
                                         if subCmd == .activate && response.count == 4 {
@@ -403,6 +418,9 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                                             // TODO
                                         }
                                         
+                                        if !self.failedToScan {
+                                            print("Sensor successfully scanned")
+                                        }
                                         session.invalidate()
                                         
                                     }
@@ -621,10 +639,10 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
 
         if invalidateSession {
             
-            xdrip.trace("   will invalide session", log: log, category: ConstantsLog.categoryLibreNFC, type: .info)
+            xdrip.trace("   will invalidate session", log: log, category: ConstantsLog.categoryLibreNFC, type: .info)
 
 //            session.invalidate(errorMessage: "\(ownErrorString) : \(systemError != nil ? systemError!.localizedDescription : "")")
-            session.invalidate(errorMessage: "Sensor scan has failed\n\nPlease go back and add the sensor again")
+            session.invalidate(errorMessage: "Sensor scan error")
             
         }
         
