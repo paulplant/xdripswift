@@ -98,7 +98,7 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 
             }
             
-            if failedToScan && !UserDefaults.standard.failedToScan {
+            if failedToScan { // && !UserDefaults.standard.failedToScan {
                 
                 xdrip.trace("NFC: scan error. Will try to disconnect the transmitter.", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 
@@ -107,7 +107,7 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 UserDefaults.standard.failedToScan = true
                 
             } else {
-                print("NFC scan session closed")
+                print("NFC scan session closed. Either due to a successful scan or because the user cancelled it.")
                 
                 // TODO: add a UIAlert to ask if they want to really try connecting without a successful NFC scan
             }
@@ -180,12 +180,12 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
 //
 //                        failedToScan = true
                         
-                        session.invalidate(errorMessage: "Sensor scan has failed (no sensor found)")
                         AudioServicesPlaySystemSound(1107)    // "failed" vibration
                         //log("NFC: stopped retrying to connect after \(requestedRetry) reattempts: \(error.localizedDescription)")
                         let debugInfo = "NFC:       fatal error: stopped trying to connect after \(requestedRetry) attempts: \(error.localizedDescription)"
 //                        xdrip.trace("%{public}@", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info, debugInfo)
-                        UserDefaults.standard.failedToScan = true
+                        failedToScan = true
+                        session.invalidate(errorMessage: "Sensor scan has failed (no sensor found)")
                         return
                     }
                     failedToScan = true

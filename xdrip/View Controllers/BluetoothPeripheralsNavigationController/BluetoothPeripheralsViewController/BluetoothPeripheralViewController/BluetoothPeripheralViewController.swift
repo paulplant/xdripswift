@@ -268,8 +268,12 @@ class BluetoothPeripheralViewController: UIViewController {
         guard let bluetoothPeripheralManager = bluetoothPeripheralManager else {return}
         
         
+     
         // device should not automaticaly connect in future, which means, each time the app restarts, it will not try to connect to this bluetoothPeripheral
-        bluetoothPeripheral.blePeripheral.shouldconnect = false
+        
+        if bluetoothPeripheral.blePeripheral.shouldconnect == true {
+            bluetoothPeripheral.blePeripheral.shouldconnect = false
+        }
         
         // save in coredata
         self.coreDataManager?.saveChanges()
@@ -1441,10 +1445,10 @@ extension BluetoothPeripheralViewController: BluetoothTransmitterDelegate {
             
             print("This is the observer function. failedToScan has been set to true so will disconnect transmitter")
             
-            //            UserDefaults.standard.failedToScan = false
+//            UserDefaults.standard.failedToScan = false
             
             // unwrap bluetoothPeripheralManager
-            //            guard let bluetoothPeripheralManager = bluetoothPeripheralManager else {return}
+            guard let bluetoothPeripheralManager = bluetoothPeripheralManager else {return}
             
             // let's first check if bluetoothPeripheral exists
             if let bluetoothPeripheral = bluetoothPeripheral {
