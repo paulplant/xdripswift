@@ -100,13 +100,22 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 
             }
             
+            if readerError.code == .readerSessionInvalidationErrorSessionTimeout {
+                
+                xdrip.trace("NFC: scan time-out error", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
+                
+                failedToScan = true
+                
+            }
+            
             if failedToScan {//&& !UserDefaults.standard.failedToScan {
                 
                 xdrip.trace("NFC: scan error. Will try to disconnect the transmitter.", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 
                 print("NFC scan failed, trying to trigger the observer")
                 
-                UserDefaults.standard.failedToScan = true
+//                UserDefaults.standard.failedToScan = true
+                libreNFCDelegate?.nfcScanResult(successful: false)
                 
             } else {
                 
@@ -114,7 +123,8 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 
                 if scanSuccessful {
                     
-                    UserDefaults.standard.scanSuccessful = true
+//                    UserDefaults.standard.scanSuccessful = true
+                    libreNFCDelegate?.nfcScanResult(successful: true)
                     
                 }
             }

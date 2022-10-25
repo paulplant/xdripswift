@@ -1457,6 +1457,73 @@ extension BluetoothPeripheralViewController: UITableViewDataSource, UITableViewD
         
     }
     
+    
+    // MARK: - observe functions
+    
+    override public func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        guard let keyPath = keyPath,
+              let keyPathEnum = UserDefaults.Key(rawValue: keyPath)
+        else { return }
+        
+        switch keyPathEnum {
+        case UserDefaults.Key.failedToScan:
+            
+            // if failedToScan didn't change to true then no further processing
+            guard UserDefaults.standard.failedToScan else {return}
+            
+            print("This is the observer function. failedToScan has been set to true so will disconnect transmitter")
+            
+            UserDefaults.standard.failedToScan = false
+            
+            // unwrap bluetoothPeripheralManager
+            //guard let bluetoothPeripheralManager = bluetoothPeripheralManager else {return}
+            
+            // remove info alert screen which may still be there
+            self.dismissInfoAlertWhenScanningStarts()
+            
+            // let's first check if bluetoothPeripheral exists
+            if let bluetoothPeripheral = bluetoothPeripheral {
+                
+                print("bluetoothPeripheral exists")
+                // disconnect
+                nfcScanFailedActionForExistingTransmitter(for: bluetoothPeripheral)
+            } else {
+                
+                print("bluetoothPeripheral doesn't exist")
+                nfcScanFailedActionForNewTransmitter()
+            }
+            
+        case UserDefaults.Key.scanSuccessful:
+            
+            // if scanSuccessful didn't change to true then no further processing
+            guard UserDefaults.standard.scanSuccessful else {return}
+            
+            UserDefaults.standard.scanSuccessful = false
+            
+            // remove info alert screen which may still be there
+            self.dismissInfoAlertWhenScanningStarts()
+            
+            print("This is the observer function. scanSuccessful has been set to true so let's tell the user to wait patiently")
+            
+            // create uialertcontroller to inform the user that the scan is successful and to just wait patiently for the sensor to connect via bluetooth
+            let scanSuccessfulAlertController = UIAlertController(title: Texts_BluetoothPeripheralView.nfcScanSuccessfulTitle , message: Texts_BluetoothPeripheralView.nfcScanSuccessfulMessage, preferredStyle: .alert)
+            
+            // create buttons for uialertcontroller
+            let OKAction = UIAlertAction(title: Texts_Common.Ok, style: .default)
+            
+            // add buttons to the alert
+            scanSuccessfulAlertController.addAction(OKAction)
+            
+            // show alert
+            present(scanSuccessfulAlertController, animated: true, completion:nil)
+            
+            
+            
+        default:
+            break
+        }
+    }
+    
 }
 
 // MARK: - extension BluetoothTransmitterDelegate
@@ -1524,73 +1591,6 @@ extension BluetoothPeripheralViewController: BluetoothTransmitterDelegate {
         let alert = UIAlertController(title: Texts_Common.warning, message: message, actionHandler: nil)
         
         self.present(alert, animated: true, completion: nil)
-    }
-    
-    
-    // MARK: - observe functions
-    
-    override public func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        guard let keyPath = keyPath,
-              let keyPathEnum = UserDefaults.Key(rawValue: keyPath)
-        else { return }
-        
-        switch keyPathEnum {
-        case UserDefaults.Key.failedToScan:
-            
-            // if failedToScan didn't change to true then no further processing
-            guard UserDefaults.standard.failedToScan else {return}
-            
-            print("This is the observer function. failedToScan has been set to true so will disconnect transmitter")
-            
-            UserDefaults.standard.failedToScan = false
-            
-            // unwrap bluetoothPeripheralManager
-            //guard let bluetoothPeripheralManager = bluetoothPeripheralManager else {return}
-            
-            // remove info alert screen which may still be there
-            self.dismissInfoAlertWhenScanningStarts()
-            
-            // let's first check if bluetoothPeripheral exists
-            if let bluetoothPeripheral = bluetoothPeripheral {
-                
-                print("bluetoothPeripheral exists")
-                // disconnect
-                nfcScanFailedActionForExistingTransmitter(for: bluetoothPeripheral)
-            } else {
-                
-                print("bluetoothPeripheral doesn't exist")
-                nfcScanFailedActionForNewTransmitter()
-            }
-            
-        case UserDefaults.Key.scanSuccessful:
-            
-            // if scanSuccessful didn't change to true then no further processing
-            guard UserDefaults.standard.scanSuccessful else {return}
-            
-            UserDefaults.standard.scanSuccessful = false
-            
-            // remove info alert screen which may still be there
-            self.dismissInfoAlertWhenScanningStarts()
-            
-            print("This is the observer function. scanSuccessful has been set to true so let's tell the user to wait patiently")
-            
-            // create uialertcontroller to inform the user that the scan is successful and to just wait patiently for the sensor to connect via bluetooth
-            let scanSuccessfulAlertController = UIAlertController(title: Texts_BluetoothPeripheralView.nfcScanSuccessfulTitle , message: Texts_BluetoothPeripheralView.nfcScanSuccessfulMessage, preferredStyle: .alert)
-            
-            // create buttons for uialertcontroller
-            let OKAction = UIAlertAction(title: Texts_Common.Ok, style: .default)
-            
-            // add buttons to the alert
-            scanSuccessfulAlertController.addAction(OKAction)
-            
-            // show alert
-            present(scanSuccessfulAlertController, animated: true, completion:nil)
-            
-            
-            
-        default:
-            break
-        }
     }
     
 }

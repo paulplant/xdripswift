@@ -1973,9 +1973,6 @@ final class RootViewController: UIViewController {
     ///     - forceReset : if true, then force the update to be done even if the main chart is panned back in time (used for the double tap gesture)
     @objc private func updateLabelsAndChart(overrideApplicationState: Bool = false, forceReset: Bool = false) {
         
-        // force treatments sync
-        UserDefaults.standard.nightScoutSyncTreatmentsRequired = true
-        
         // if glucoseChartManager not nil, then check if panned backward and if so then don't update the chart
         if let glucoseChartManager = glucoseChartManager  {
             // check that app is in foreground, but only if overrideApplicationState = false
@@ -1986,6 +1983,9 @@ final class RootViewController: UIViewController {
         }
         
         guard UIApplication.shared.applicationState == .active || overrideApplicationState else {return}
+        
+        // force treatments sync
+        UserDefaults.standard.nightScoutSyncTreatmentsRequired = true
         
         // check that bgReadingsAccessor exists, otherwise return - this happens if updateLabelsAndChart is called from viewDidload at app launch
         guard let bgReadingsAccessor = bgReadingsAccessor else {return}

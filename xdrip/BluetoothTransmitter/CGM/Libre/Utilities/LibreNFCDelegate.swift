@@ -9,4 +9,6 @@ protocol LibreNFCDelegate: AnyObject {
     
     func streamingEnabled(successful : Bool)
     
+    func nfcScanResult(successful : Bool)
+    
 }

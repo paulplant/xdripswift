@@ -377,6 +377,15 @@ class CGMLibre2Transmitter:BluetoothTransmitter, CGMTransmitter {
 
 extension CGMLibre2Transmitter: LibreNFCDelegate {
     
+    func nfcScanResult(successful: Bool) {
+        if successful {
+            UserDefaults.standard.scanSuccessful = true
+        } else {
+            UserDefaults.standard.failedToScan = true
+        }
+    }
+    
+    
     func received(fram: Data) {
         
         trace("received fram :  %{public}@", log: log, category: ConstantsLog.categoryCGMLibre2, type: .info, fram.toHexString())

@@ -1170,7 +1170,11 @@ extension UserDefaults {
             return bool(forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
         }
         set {
-            set(newValue, forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
+//            set(newValue, forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
+            
+            if newValue != bool(forKey: Key.nightScoutSyncTreatmentsRequired.rawValue) {
+                set(newValue, forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
+            }
         }
     }
     
@@ -1630,7 +1634,11 @@ extension UserDefaults {
             return bool(forKey: Key.failedToScan.rawValue)
         }
         set {
-            set(newValue, forKey: Key.failedToScan.rawValue)
+            //set(newValue, forKey: Key.failedToScan.rawValue)
+            
+            if newValue != bool(forKey: Key.failedToScan.rawValue) {
+                set(newValue, forKey: Key.failedToScan.rawValue)
+            }
         }
     }
     
@@ -1641,7 +1649,11 @@ extension UserDefaults {
             return bool(forKey: Key.scanSuccessful.rawValue)
         }
         set {
-            set(newValue, forKey: Key.scanSuccessful.rawValue)
+//            set(newValue, forKey: Key.scanSuccessful.rawValue)
+            
+            if newValue != bool(forKey: Key.scanSuccessful.rawValue) {
+                set(newValue, forKey: Key.scanSuccessful.rawValue)
+            }
         }
     }
     
@@ -1900,7 +1912,12 @@ extension UserDefaults {
             }
         }
         set {
-            set(newValue, forKey: Key.librePatchInfo.rawValue)
+//            set(newValue, forKey: Key.librePatchInfo.rawValue)
+            
+            if newValue != object(forKey: Key.librePatchInfo.rawValue) as? Data {
+                set(newValue, forKey: Key.librePatchInfo.rawValue)
+            }
+            
         }
     }
     
