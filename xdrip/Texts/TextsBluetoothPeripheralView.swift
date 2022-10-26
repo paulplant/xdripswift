@@ -153,6 +153,6 @@ class Texts_BluetoothPeripheralView {
     }()
     
     static let nfcScanSuccessfulMessage: String = {
-        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ The sensor scan was successful.\n\nClick OK and wait for the sensor to finish connecting via bluetooth.\n\nIn less than 60 seconds should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
+        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ The sensor scan was successful.\n\nClick OK and wait for the sensor to finish connecting via bluetooth.\n\nIn less than 60 seconds you should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
     }()
 }

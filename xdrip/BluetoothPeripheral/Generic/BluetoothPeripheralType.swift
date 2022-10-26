@@ -279,4 +279,19 @@ enum BluetoothPeripheralType: String, CaseIterable {
        
     }
     
+    /// uses an NFC scan when connecting, or not
+    func usesNFCScanToConnect() -> Bool {
+       
+       switch self {
+           
+       case .M5StackType, .M5StickCType, .DexcomG4Type, .DexcomType, .BubbleType, .MiaoMiaoType, .WatlaaType, .BluconType, .BlueReaderType, .DropletType , .GNSentryType, .AtomType:
+           return false
+        
+       case .Libre2Type:
+            return true
+
+       }
+       
+    }
+    
 }

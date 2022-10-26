@@ -986,7 +986,9 @@ extension UserDefaults {
             return bool(forKey: Key.useIFCCA1C.rawValue)
         }
         set {
-            set(newValue, forKey: Key.useIFCCA1C.rawValue)
+            if newValue != bool(forKey: Key.useIFCCA1C.rawValue) {
+                set(newValue, forKey: Key.useIFCCA1C.rawValue)
+            }
         }
     }
     
@@ -1084,7 +1086,9 @@ extension UserDefaults {
             return bool(forKey: Key.nightScoutEnabled.rawValue)
         }
         set {
-            set(newValue, forKey: Key.nightScoutEnabled.rawValue)
+            if newValue != bool(forKey: Key.nightScoutEnabled.rawValue) {
+                set(newValue, forKey: Key.nightScoutEnabled.rawValue)
+            }
         }
     }
     
@@ -1170,8 +1174,6 @@ extension UserDefaults {
             return bool(forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
         }
         set {
-//            set(newValue, forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
-            
             if newValue != bool(forKey: Key.nightScoutSyncTreatmentsRequired.rawValue) {
                 set(newValue, forKey: Key.nightScoutSyncTreatmentsRequired.rawValue)
             }
@@ -1627,36 +1629,6 @@ extension UserDefaults {
         }
     }
     
-    /// in case an NFC scan fails, this value will be set to true.
-    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will immediately disconnect the transmitter
-    @objc dynamic var failedToScan: Bool {
-        get {
-            return bool(forKey: Key.failedToScan.rawValue)
-        }
-        set {
-            //set(newValue, forKey: Key.failedToScan.rawValue)
-            
-            if newValue != bool(forKey: Key.failedToScan.rawValue) {
-                set(newValue, forKey: Key.failedToScan.rawValue)
-            }
-        }
-    }
-    
-    /// in case an NFC completes successfuly, this value will be set to true.
-    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will advise the user to patiently wait for the sensor to connect via bluetooth
-    @objc dynamic var scanSuccessful: Bool {
-        get {
-            return bool(forKey: Key.scanSuccessful.rawValue)
-        }
-        set {
-//            set(newValue, forKey: Key.scanSuccessful.rawValue)
-            
-            if newValue != bool(forKey: Key.scanSuccessful.rawValue) {
-                set(newValue, forKey: Key.scanSuccessful.rawValue)
-            }
-        }
-    }
-    
     
     // MARK: - =====  Loop Share Settings ======
     
@@ -1912,12 +1884,35 @@ extension UserDefaults {
             }
         }
         set {
-//            set(newValue, forKey: Key.librePatchInfo.rawValue)
-            
             if newValue != object(forKey: Key.librePatchInfo.rawValue) as? Data {
                 set(newValue, forKey: Key.librePatchInfo.rawValue)
             }
-            
+        }
+    }
+    
+    /// in case an NFC scan fails, this value will be set to true.
+    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will immediately disconnect the transmitter
+    @objc dynamic var failedToScan: Bool {
+        get {
+            return bool(forKey: Key.failedToScan.rawValue)
+        }
+        set {
+            if newValue != bool(forKey: Key.failedToScan.rawValue) {
+                set(newValue, forKey: Key.failedToScan.rawValue)
+            }
+        }
+    }
+    
+    /// in case an NFC completes successfuly, this value will be set to true.
+    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will advise the user to patiently wait for the sensor to connect via bluetooth
+    @objc dynamic var scanSuccessful: Bool {
+        get {
+            return bool(forKey: Key.scanSuccessful.rawValue)
+        }
+        set {
+            if newValue != bool(forKey: Key.scanSuccessful.rawValue) {
+                set(newValue, forKey: Key.scanSuccessful.rawValue)
+            }
         }
     }
     

@@ -753,9 +753,14 @@ class BluetoothPeripheralViewController: UIViewController {
             // disable screen lock
             UIApplication.shared.isIdleTimerDisabled = true
             
-            // show info that user should keep the app in the foreground
-            self.infoAlertWhenScanningStarts = UIAlertController(title: Texts_HomeView.info, message: Texts_HomeView.startScanningInfo, actionHandler: nil)
-            self.present(self.infoAlertWhenScanningStarts!, animated:true)
+            // let's first check if bluetoothPeripheral exists
+            if let expectedBluetoothPeripheralType = expectedBluetoothPeripheralType, !expectedBluetoothPeripheralType.usesNFCScanToConnect() {
+                
+                // show info that user should keep the app in the foreground
+                self.infoAlertWhenScanningStarts = UIAlertController(title: Texts_HomeView.info, message: Texts_HomeView.startScanningInfo, actionHandler: nil)
+                self.present(self.infoAlertWhenScanningStarts!, animated:true)
+                
+            }
             
         case .alreadyScanning, .alreadyConnected, .connecting :
             
@@ -1471,6 +1476,8 @@ extension BluetoothPeripheralViewController: UITableViewDataSource, UITableViewD
             // if failedToScan didn't change to true then no further processing
             guard UserDefaults.standard.failedToScan else {return}
             
+            // TODO: add trace logging
+            
             print("This is the observer function. failedToScan has been set to true so will disconnect transmitter")
             
             UserDefaults.standard.failedToScan = false
@@ -1497,6 +1504,8 @@ extension BluetoothPeripheralViewController: UITableViewDataSource, UITableViewD
             
             // if scanSuccessful didn't change to true then no further processing
             guard UserDefaults.standard.scanSuccessful else {return}
+            
+            // TODO: add trace logging
             
             UserDefaults.standard.scanSuccessful = false
             
