@@ -378,10 +378,19 @@ class CGMLibre2Transmitter:BluetoothTransmitter, CGMTransmitter {
 extension CGMLibre2Transmitter: LibreNFCDelegate {
     
     func nfcScanResult(successful: Bool) {
+        
         if successful {
-            UserDefaults.standard.scanSuccessful = true
+            
+            trace("setting userdefaults nfcScanSuccessful to true", log: log, category: ConstantsLog.categoryCGMLibre2, type: .info)
+            
+            UserDefaults.standard.nfcScanSuccessful = true
+                        
         } else {
-            UserDefaults.standard.failedToScan = true
+            
+            trace("setting userdefaults nfcScanFailed to true", log: log, category: ConstantsLog.categoryCGMLibre2, type: .info)
+            
+            UserDefaults.standard.nfcScanFailed = true
+            
         }
     }
     

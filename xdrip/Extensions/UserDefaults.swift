@@ -294,10 +294,10 @@ extension UserDefaults {
         
         // NFC scan failure indicator
         /// used to indicate that a Libre 2 NFC pairing scan has failed
-        case failedToScan = "failedToScan"
+        case nfcScanFailed = "nfcScanFailed"
         // NFC scan failure indicator
         /// used to indicate that a Libre 2 NFC pairing scan has been successful
-        case scanSuccessful = "scanSuccessful"
+        case nfcScanSuccessful = "nfcScanSuccessful"
         
         // non fixed slope values for oop web Libre
         /// web oop parameters, only for bubble, miaomiao and Libre 2
@@ -1892,26 +1892,26 @@ extension UserDefaults {
     
     /// in case an NFC scan fails, this value will be set to true.
     /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will immediately disconnect the transmitter
-    @objc dynamic var failedToScan: Bool {
+    @objc dynamic var nfcScanFailed: Bool {
         get {
-            return bool(forKey: Key.failedToScan.rawValue)
+            return bool(forKey: Key.nfcScanFailed.rawValue)
         }
         set {
-            if newValue != bool(forKey: Key.failedToScan.rawValue) {
-                set(newValue, forKey: Key.failedToScan.rawValue)
+            if newValue != bool(forKey: Key.nfcScanFailed.rawValue) {
+                set(newValue, forKey: Key.nfcScanFailed.rawValue)
             }
         }
     }
     
     /// in case an NFC completes successfuly, this value will be set to true.
     /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will advise the user to patiently wait for the sensor to connect via bluetooth
-    @objc dynamic var scanSuccessful: Bool {
+    @objc dynamic var nfcScanSuccessful: Bool {
         get {
-            return bool(forKey: Key.scanSuccessful.rawValue)
+            return bool(forKey: Key.nfcScanSuccessful.rawValue)
         }
         set {
-            if newValue != bool(forKey: Key.scanSuccessful.rawValue) {
-                set(newValue, forKey: Key.scanSuccessful.rawValue)
+            if newValue != bool(forKey: Key.nfcScanSuccessful.rawValue) {
+                set(newValue, forKey: Key.nfcScanSuccessful.rawValue)
             }
         }
     }
