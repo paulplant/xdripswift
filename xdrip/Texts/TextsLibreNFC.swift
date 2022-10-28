@@ -5,7 +5,7 @@ class TextsLibreNFC {
     static private let filename = "LibreNFC"
     
     static let scanComplete: String = {
-        return NSLocalizedString("scanComplete", tableName: filename, bundle: Bundle.main, value: "Sensor scan complete", comment: "after scanning NFC, scan complete message")
+        return NSLocalizedString("scanComplete", tableName: filename, bundle: Bundle.main, value: "Sensor scan successful", comment: "after scanning NFC, scan complete message")
     }()
 
     static let holdTopOfIphoneNearSensor: String = {
@@ -28,17 +28,17 @@ class TextsLibreNFC {
         return String(format: NSLocalizedString("connectedLibre2DoesNotMatchScannedLibre2", tableName: filename, bundle: Bundle.main, value: "You have scanned a new Libre sensor, but %@ has connected to a different sensor (probably the previous one).\n\nTo solve this do NOT delete this old sensor just yet. Click 'Disconnect' or 'Stop Scanning', go back to the previous screen and add a new CGM of type Libre 2 and scan the sensor again.\n\n%@ should now try and connect to the new sensor.\n\nIf you already deleted the old sensor from the app then before trying to add the new one again, stop the old one from transmitting by placing it in tin foil or in the microwave.", comment: "The user has connected to another (older?) Libre 2 with bluetooth than the one for which NFC scan was done, in that case, inform user that he/she should click 'disconnect', add a new CGM sensor and scan again."), ConstantsHomeView.applicationName, ConstantsHomeView.applicationName)
     }()
     
+    // nfcErrorRetryScan is no longer used
     static let nfcErrorRetryScan: String = {
         return NSLocalizedString("nfcErrorRetryScan", tableName: filename, bundle: Bundle.main, value: "NFC scan error.\n\nTry scanning again.", comment: "Sometimes NFC scanning creates errors, retrying solves the problem. This is to explain this to the user")
     }()
-    
-    
+        
     static let nfcScanFailedTitle: String = {
         return NSLocalizedString("nfcScanFailedTitle", tableName: filename, bundle: Bundle.main, value: "Sensor Scan Error", comment: "Sensor scan error, title")
     }()
     
     static let nfcScanFailedMessage: String = {
-        return NSLocalizedString("nfcScanFailedMessage", tableName: filename, bundle: Bundle.main, value: "\n⚠️ Please try and scan again.", comment: "Ask if the user wants to try and scan the sensor again")
+        return NSLocalizedString("nfcScanFailedMessage", tableName: filename, bundle: Bundle.main, value: "\n⚠️ Please scan again ⚠️", comment: "Ask if the user wants to try and scan the sensor again")
     }()
     
     static let nfcScanFailedScanAgainButton: String = {
@@ -50,6 +50,14 @@ class TextsLibreNFC {
     }()
     
     static let nfcScanSuccessfulMessage: String = {
-        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ The sensor scan was successful.\n\nClick OK and wait for the sensor to finish connecting via bluetooth.\n\nIn a short while you should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
+        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ Scan successful ✅\n\nClick OK and allow the sensor to finish connecting via bluetooth.\n\nIn a short while you should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
+    }()
+    
+    static let nfcErrorMessageScanErrorRetrying: String = {
+        return NSLocalizedString("nfcErrorMessageScanErrorRetrying", tableName: filename, bundle: Bundle.main, value: "Sensor scan error\n\nRetrying... # ", comment: "Tell the user the scan has failed and we're retrying several times")
+    }()
+    
+    static let nfcErrorMessageScanFailed: String = {
+        return NSLocalizedString("nfcErrorMessageScanFailed", tableName: filename, bundle: Bundle.main, value: "Sensor scan has failed", comment: "Tell the user the scan has failed and we're retrying several times")
     }()
 }

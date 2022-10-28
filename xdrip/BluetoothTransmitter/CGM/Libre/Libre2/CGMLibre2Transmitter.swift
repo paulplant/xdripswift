@@ -384,7 +384,7 @@ extension CGMLibre2Transmitter: LibreNFCDelegate {
             trace("setting userdefaults nfcScanSuccessful to true", log: log, category: ConstantsLog.categoryCGMLibre2, type: .info)
             
             UserDefaults.standard.nfcScanSuccessful = true
-                        
+            
         } else {
             
             trace("setting userdefaults nfcScanFailed to true", log: log, category: ConstantsLog.categoryCGMLibre2, type: .info)
@@ -392,6 +392,7 @@ extension CGMLibre2Transmitter: LibreNFCDelegate {
             UserDefaults.standard.nfcScanFailed = true
             
         }
+        
     }
     
     
