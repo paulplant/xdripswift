@@ -68,6 +68,10 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
         
         if let tagSession = NFCTagReaderSession(pollingOption: [.iso15693], delegate: self, queue: .main) {
             
+//            UserDefaults.standard.nfcScanSuccessful = false
+//            
+//            UserDefaults.standard.nfcScanFailed = false
+            
             tagSession.alertMessage = TextsLibreNFC.holdTopOfIphoneNearSensor
             
             tagSession.begin()
@@ -94,9 +98,9 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 
                 xdrip.trace("NFC: scan time-out error", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 
-            case .readerSessionInvalidationErrorUserCanceled:
-                
-                xdrip.trace("NFC: user cancelled the NFC scan", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
+//            case .readerSessionInvalidationErrorUserCanceled:
+//
+//                xdrip.trace("NFC: user cancelled the NFC scan", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 
                 
             default:
@@ -115,6 +119,12 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 
                 xdrip.trace("NFC: passing scan successful to the delegate", log: self.log, category: ConstantsLog.categoryLibreNFC, type: .info)
                 
+                print("starting ble scanning")
+                
+                libreNFCDelegate?.nfcScanResult(successful: true)
+                
+                libreNFCDelegate?.startBLEScanning()
+                
             } else {
                 
                 print("NFC: passing scan error to the delegate")
@@ -124,9 +134,11 @@ class LibreNFC: NSObject, NFCTagReaderSessionDelegate {
                 // play "failed" vibration
                 AudioServicesPlaySystemSound(1107)
                 
+                libreNFCDelegate?.nfcScanResult(successful: false)
+                
             }
             
-            libreNFCDelegate?.nfcScanResult(successful: nfcScanSuccessful)
+//            libreNFCDelegate?.nfcScanResult(successful: nfcScanSuccessful)
             
         }
         

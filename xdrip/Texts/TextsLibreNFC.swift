@@ -30,11 +30,11 @@ class TextsLibreNFC {
     
     // nfcErrorRetryScan is no longer used
     static let nfcErrorRetryScan: String = {
-        return NSLocalizedString("nfcErrorRetryScan", tableName: filename, bundle: Bundle.main, value: "NFC scan error.\n\nTry scanning again.", comment: "Sometimes NFC scanning creates errors, retrying solves the problem. This is to explain this to the user")
+        return NSLocalizedString("nfcErrorRetryScan", tableName: filename, bundle: Bundle.main, value: "NFC sensor scan failure.\n\nTry scanning again.", comment: "Sometimes NFC scanning creates errors, retrying solves the problem. This is to explain this to the user")
     }()
         
     static let nfcScanFailedTitle: String = {
-        return NSLocalizedString("nfcScanFailedTitle", tableName: filename, bundle: Bundle.main, value: "Sensor Scan Error", comment: "Sensor scan error, title")
+        return NSLocalizedString("nfcScanFailedTitle", tableName: filename, bundle: Bundle.main, value: "Sensor Scan Failed", comment: "Sensor scan error, title")
     }()
     
     static let nfcScanFailedMessage: String = {
@@ -50,7 +50,7 @@ class TextsLibreNFC {
     }()
     
     static let nfcScanSuccessfulMessage: String = {
-        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ Scan successful ✅\n\nClick OK and allow the sensor to finish connecting via bluetooth.\n\nIn a short while you should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
+        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ Scan successful ✅\n\nClick OK and just wait to allow the sensor to finish connecting via bluetooth.\n\nIn a short while you should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
     }()
     
     static let nfcErrorMessageScanErrorRetrying: String = {

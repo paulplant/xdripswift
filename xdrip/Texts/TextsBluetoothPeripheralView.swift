@@ -136,4 +136,8 @@ class Texts_BluetoothPeripheralView {
         return NSLocalizedString("useOtherDexcomApp", tableName: filename, bundle: Bundle.main, value: "Follow Dexcom-app", comment: "Dexcom bluetooth screen. Is another app used in parallel or not")
     }()
     
+    static let nfcScanNeeded: String = {
+        return NSLocalizedString("nfcScanNeeded", tableName: filename, bundle: Bundle.main, value: "NFC scan needed", comment: "text in status row, when waiting for a successful NFC scan before starting bluetooth scanning")
+    }()
+    
 }

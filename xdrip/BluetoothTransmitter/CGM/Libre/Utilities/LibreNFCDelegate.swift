@@ -11,4 +11,6 @@ protocol LibreNFCDelegate: AnyObject {
     
     func nfcScanResult(successful : Bool)
     
+    func startBLEScanning()
+    
 }
