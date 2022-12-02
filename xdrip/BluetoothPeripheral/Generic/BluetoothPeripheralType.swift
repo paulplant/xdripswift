@@ -279,8 +279,8 @@ enum BluetoothPeripheralType: String, CaseIterable {
        
     }
     
-    /// uses an NFC scan when connecting, or not
-    func usesNFCScanToConnect() -> Bool {
+    /// needs an NFC scan before connecting via BLE, or not
+    func needsNFCScanToConnect() -> Bool {
        
        switch self {
            

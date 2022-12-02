@@ -1891,7 +1891,7 @@ extension UserDefaults {
     }
     
     /// in case an NFC scan fails, this value will be set to true.
-    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will immediately disconnect the transmitter
+    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it should disconnect the transmitter and offer to scan again
     @objc dynamic var nfcScanFailed: Bool {
         get {
             return bool(forKey: Key.nfcScanFailed.rawValue)
@@ -1904,7 +1904,7 @@ extension UserDefaults {
     }
     
     /// in case an NFC completes successfuly, this value will be set to true.
-    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will advise the user to patiently wait for the sensor to connect via bluetooth
+    /// bluetoothPeripheralViewController will observe this value and if it becomes set to true, it will advise the user and launch BLE scanning from the superclass
     @objc dynamic var nfcScanSuccessful: Bool {
         get {
             return bool(forKey: Key.nfcScanSuccessful.rawValue)

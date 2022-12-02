@@ -50,7 +50,7 @@ class TextsLibreNFC {
     }()
     
     static let nfcScanSuccessfulMessage: String = {
-        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ Scan successful ✅\n\nClick OK and just wait to allow the sensor to finish connecting via bluetooth.\n\nIn a short while you should get readings.", comment: "Tell the user the scan was successful and to just wait now for connection")
+        return NSLocalizedString("nfcScanSuccessfulMessage", tableName: filename, bundle: Bundle.main, value: "\n✅ Scan successful ✅\n\nClick OK and just wait to allow the sensor to finish connecting via bluetooth.\n\nIn a short while the status should change to 'Connected'.", comment: "Tell the user the scan was successful and to just wait now for connection")
     }()
     
     static let nfcErrorMessageScanErrorRetrying: String = {
