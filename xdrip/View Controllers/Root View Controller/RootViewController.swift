@@ -755,6 +755,9 @@ final class RootViewController: UIViewController {
 
         // add observer for nightScoutTreatmentsUpdateCounter, to reload the chart whenever a treatment is added or updated or deleted changes
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.nightScoutTreatmentsUpdateCounter.rawValue, options: .new, context: nil)
+        
+        // add observer for stopActiveSensor, this will reset the active sensor to nil when the user disconnects an intergrated transmitter/sensor (e.g. Libre 2 Direct). This will help ensure that the sensor countdown is updated disabled until a new sensor is started.
+        UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.stopActiveSensor.rawValue, options: .new, context: nil)
 
         // setup delegate for UNUserNotificationCenter
         UNUserNotificationCenter.current().delegate = self
@@ -1427,6 +1430,19 @@ final class RootViewController: UIViewController {
             // refresh screenLock function if it is currently activated in order to show/hide the clock as requested
             if screenIsLocked {
                 screenLockUpdate(enabled: true)
+            }
+            
+        case UserDefaults.Key.stopActiveSensor:
+            
+            // if stopActiveSensor wasn't changed to true then no further processing
+            if UserDefaults.standard.stopActiveSensor {
+                
+                sensorStopDetected()
+                
+                updateSensorCountdown()
+                
+                UserDefaults.standard.stopActiveSensor = false
+                
             }
 
         default:

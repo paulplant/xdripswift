@@ -288,6 +288,16 @@ class BluetoothPeripheralViewController: UIViewController {
                 // save in coredata
                 self.coreDataManager?.saveChanges()
                 
+                // in case it's a Libre2 CGM, libre1DerivedAlgorithmParameters has a non nil value. When deleting the transmitter, by setting to nil, this will ensure that user first need to do a successful NFC scan.
+                if let bluetoothTransmitter = bluetoothPeripheralManager.getBluetoothTransmitter(for: bluetoothPeripheral, createANewOneIfNecesssary: false), bluetoothTransmitter is CGMTransmitter {
+                    
+                    UserDefaults.standard.libre1DerivedAlgorithmParameters = nil
+                    
+                    // we'll also take advantage to stop the active sensor session for this type of CGM. This will cause the countdown sensor to be disabled until another sensor session is started with a max sensor age value
+                    UserDefaults.standard.stopActiveSensor = true
+                    
+                }
+                
                 // connect button label text needs to change because shouldconnect value has changed
                 _ = BluetoothPeripheralViewController.setConnectButtonLabelTextAndGetStatusDetailedText(bluetoothPeripheral: bluetoothPeripheral, isScanning: self.isScanning, nfcScanNeeded: self.nfcScanNeeded, nfcScanSuccessful: self.nfcScanSuccessful, connectButtonOutlet: self.connectButtonOutlet, expectedBluetoothPeripheralType: self.expectedBluetoothPeripheralType, transmitterId: self.transmitterIdTempValue, bluetoothPeripheralManager: bluetoothPeripheralManager as! BluetoothPeripheralManager)
                 
@@ -321,6 +331,16 @@ class BluetoothPeripheralViewController: UIViewController {
             
             // save in coredata
             self.coreDataManager?.saveChanges()
+            
+            // in case it's a Libre2 CGM, libre1DerivedAlgorithmParameters has a non nil value. When deleting the transmitter, by setting to nil, this will ensure that user first need to do a successful NFC scan.
+            if let bluetoothTransmitter = bluetoothPeripheralManager.getBluetoothTransmitter(for: bluetoothPeripheral, createANewOneIfNecesssary: false), bluetoothTransmitter is CGMTransmitter {
+                
+                UserDefaults.standard.libre1DerivedAlgorithmParameters = nil
+                
+                // we'll also take advantage to stop the active sensor session for this type of CGM. This will cause the countdown sensor to be disabled until another sensor session is started with a max sensor age value
+                UserDefaults.standard.stopActiveSensor = true
+                
+            }
             
             // connect button label text needs to change because shouldconnect value has changed
             _ = BluetoothPeripheralViewController.setConnectButtonLabelTextAndGetStatusDetailedText(bluetoothPeripheral: bluetoothPeripheral, isScanning: self.isScanning, nfcScanNeeded: self.nfcScanNeeded, nfcScanSuccessful: self.nfcScanSuccessful, connectButtonOutlet: self.connectButtonOutlet, expectedBluetoothPeripheralType: self.expectedBluetoothPeripheralType, transmitterId: self.transmitterIdTempValue, bluetoothPeripheralManager: bluetoothPeripheralManager as! BluetoothPeripheralManager)
@@ -814,6 +834,9 @@ class BluetoothPeripheralViewController: UIViewController {
                 
                 UserDefaults.standard.libre1DerivedAlgorithmParameters = nil
                 
+                // we'll also take advantage to stop the active sensor session for this type of CGM. This will cause the countdown sensor to be disabled until another sensor session is started with a max sensor age value
+                UserDefaults.standard.stopActiveSensor = true
+                
             }
 
             // delete
@@ -853,14 +876,6 @@ class BluetoothPeripheralViewController: UIViewController {
                 
                 // disconnect
                 setShouldConnectToFalse(for: bluetoothPeripheral, askUser: true)
-                
-                // in case it's a Libre2 CGM, libre1DerivedAlgorithmParameters has a non nil value. When disconnecting set to nil, user will need to scan again when reconnecting
-                // in case it's a Libre2 CGM, libre1DerivedAlgorithmParameters has a non nil value. When deleting the transmitter, by setting to nil, this will ensure that user first need to do a successful NFC scan.
-                if let bluetoothTransmitter = bluetoothPeripheralManager.getBluetoothTransmitter(for: bluetoothPeripheral, createANewOneIfNecesssary: false), bluetoothTransmitter is CGMTransmitter {
-                    
-                    UserDefaults.standard.libre1DerivedAlgorithmParameters = nil
-                    
-                }
                 
                 // call configure in the model, as we have a new transmitter here
                 bluetoothPeripheralViewModel?.configure(bluetoothPeripheral: bluetoothPeripheral, bluetoothPeripheralManager: bluetoothPeripheralManager, tableView: tableView, bluetoothPeripheralViewController: self)
