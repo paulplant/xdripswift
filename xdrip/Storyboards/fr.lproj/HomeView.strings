@@ -34,7 +34,6 @@
 "transmitterpairingattempttimeout" = "Le transmetteur n'a pas répondu à la demande d'appareillage.";
 "success" = "Réussi";
 "failed" = "Echec";
-"calibrationNotNecessary" = "Avec l'activation d'OOPWeb, la calibration n'est plus nécessaire pour le capteur Libre.";
 "dexcomBatteryTooLow" = "La batterie du transmetteur est trop faible!";
 
 /////////////////////////////////////////////////////////////////////////////////////////////

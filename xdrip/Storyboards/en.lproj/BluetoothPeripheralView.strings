@@ -32,3 +32,4 @@
 "transmittterStartDate" = "Transmitter Start";
 "sensorStartDate" = "Sensor Start";
 "useOtherDexcomApp" = "Follow Dexcom-app";
+"nfcScanNeeded" = "NFC scan needed";

@@ -1,4 +1,4 @@
-//"scanComplete" = "Sensor scan successful";
+"scanComplete" = "Sensor scan successful";
 "holdTopOfIphoneNearSensor" = "Hold the top of your iPhone near the sensor until it stops vibrating.";
 "deviceMustSupportNFC" = "This iPhone does not support NFC";
 "deviceMustSupportIOS14" = "To connect to Libre 2, this iPhone needs upgrading to iOS14";
