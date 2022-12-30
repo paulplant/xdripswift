@@ -118,3 +118,5 @@
 
 /// status info : literally 'Sensor End'
 "sensorend" = "Sensor Ends";
+
+"calibrationNotNecessary" = "Bei Verwendung des originalen Sensor Algorithmus ist eine manuelle Kalibrierung nicht möglich.\n\nWenn Sie kalibrieren möchten, aktivieren Sie bitte den xDrip Algorithmus.";

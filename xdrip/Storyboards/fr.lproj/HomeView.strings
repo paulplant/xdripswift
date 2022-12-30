@@ -52,3 +52,5 @@
 
 /// status info : literally 'Sensor End'
 "sensorend" = "Sensor Ends";
+
+"calibrationNotNecessary" = "Le menu calibrations manuelles n'est pas disponible si vous utilisez l'algorithme natif.\n\nPour calibrer vous pouvez passer à l'algorithme xDrip dans le menu de l'émetteur.";

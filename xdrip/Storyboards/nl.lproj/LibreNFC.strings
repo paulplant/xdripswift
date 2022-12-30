@@ -3,3 +3,11 @@
 
 /// Sometimes NFC scanning creates errors, retrying solves the problem. This is to explain this to the user
 "nfcErrorRetryScan" = "Fout tijdens scan. Click 'scan' linksboven opnieuw of klik 'Vorige' en voeg opnieuw de Libre 2 toe, en scan de sensor opnieuw";
+
+"scanComplete" = "Sensor scan gelukt";
+
+"holdTopOfIphoneNearSensor" = "Houd de bovenkant van je iPhone nabij de sensor tot de vibratie stopt.";
+
+"donotusethelibrelinkapp" = "Verbonden met Libre 2.\n\nTrek de toegang tot bluetooth in voor de Libre app. \n\nIndien de sensor wordt gescand met de Libre app terwijl deze nog toegang heeft tot bluetooth, verbreekt de verbinding tussen %@ en de Libre 2.";
+
+"connectedLibre2DoesNotMatchScannedLibre2" = "Je hebt blijkbaar een nieuwe sensor gescand maar %@ maakt nog altijd de Bluetooth verbinding naar de vorige sensor.\r\n\r\nOm dit op te lossen, verwijder de oude sensor nog niet. Klik 'Loskoppelen' of 'Stop Scannen'. Keer terug naar het vorige scherm en voeg een nieuwe CGM toe, type Libre 2, en scan opnieuw.\r\n\r\n%@ zal nu proberen te verbinden met de nieuwe sensor.";

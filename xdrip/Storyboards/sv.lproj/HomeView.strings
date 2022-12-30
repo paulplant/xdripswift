@@ -52,3 +52,5 @@
 
 /// status info : literally 'Sensor End'
 "sensorend" = "Sensor Ends";
+
+"calibrationNotNecessary" = "När du använder sändarens inbyggda algoritm går det inte att kalibrera.\n\nFör att kunna kalibrera behöver du byta till xDrip-algoritmen in sändarinställningarna.";

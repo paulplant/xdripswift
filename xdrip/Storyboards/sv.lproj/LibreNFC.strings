@@ -1,3 +1,11 @@
 "deviceMustSupportNFC" = "Denna iPhone stöder inte NFC";
 "deviceMustSupportIOS14" = "För att ansluta till Libre 2 behövs uppgradering till iOS 14.";
 "nfcErrorRetryScan" = "Fel inträffade vid scanning av sensorn. KLicka 'Scanna' uppe till vänster eller klicka 'tillbaka' och lägg till Libre 2 igen, och scanna igen.";
+
+"scanComplete" = "Scanning lyckades";
+
+"holdTopOfIphoneNearSensor" = "Håll översta delen av din iPhone mot sensorn till du hör ett ljud eller känner en vibration.";
+
+"donotusethelibrelinkapp" = "Ansluten till Libre 2.\n\nSäkerställ att du inaktiverat bluetooth för LibreLink i dina iPhone-inställningar.\n\nOm du inte gör detta kommer anslutning mellan %@ och Libre 2 att brytas.";
+
+"connectedLibre2DoesNotMatchScannedLibre2" = "Du har scannat en ny Libre-sensor, men %@ har anslutit till en annan sensor, troligen den gamla sensorn.\n\nFör att lösa detta TA INTE bort den gamla sensorn ännu. Klicka istället 'Koppla från' eller 'Sluta scanna', gå tillbaka till tidigare skärm och lägg till en ny CGM av typ Libre 2 och scanna sensorn igen.\n\n%@ borde nu försöka att ansluta till den nya sensorn.";

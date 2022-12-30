@@ -6,3 +6,11 @@
 
 /// Sometimes NFC scanning creates errors, retrying solves the problem. This is to explain this to the user
 "nfcErrorRetryScan" = "Erreur durant le scan du capteur. Cliquez 'Scan' en haut à gauche et scanner à nouveau votre capteur.";
+
+"scanComplete" = "Scan du capteur réussi";
+
+"holdTopOfIphoneNearSensor" = "Tenez le haut de votre iPhone près du capteur jusqu'à ce qu'il arrète de vibrer.";
+
+"donotusethelibrelinkapp" = "Connecté au Libre 2.\n\nDésactivez la permission bluetooth de l'app Libre dans les réglages de l'iPhone.\n\nSi vous ne le faites pas, quand vous ferez un scan avec l'app Libre vous perdrez la connection entre %@ et le Libre 2.";
+
+"connectedLibre2DoesNotMatchScannedLibre2" = "Vous avez fait le scan d'un nouveau capteur Libre, mais %@ s'est connecté à un autre capteur (probablement le précédent).\n\nPour résoudre ce probleme N'EFFACEZ PAS le capteur précédent. Cliquez 'Déconnecter' ou 'Arreter le scan', retournez sur l'écran précédent et ajoutez un nouveau CGM Libre 2 et refaites le scan du capteur.\n\n%@ devrait essayer de se connecter au nouveau capteur.";

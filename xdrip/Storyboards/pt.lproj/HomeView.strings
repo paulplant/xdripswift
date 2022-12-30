@@ -52,3 +52,5 @@
 
 /// status info : literally 'Sensor End'
 "sensorend" = "Sensor Ends";
+
+"calibrationNotNecessary" = "Quando em utilização do algoritmo nativo do transmissor, calibração manual não está disponível.\n\nSe pretende calibrar, terá que alterar para o algoritmo xDrip no menu do transmissor.";

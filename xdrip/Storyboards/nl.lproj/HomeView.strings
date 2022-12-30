@@ -52,3 +52,5 @@
 
 /// status info : literally 'Sensor End'
 "sensorend" = "Sensor Ends";
+
+"calibrationNotNecessary" = "Indien het Libre algorithme wordt gebruikt is kalibratie van de sensor niet nodig.\n\nIndien je toch wil kalibreren, ga dan naar je CGM in het Bluetooth scherm en schakel 'Gebruik zender algoritme' uit";
