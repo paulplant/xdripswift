@@ -45,9 +45,6 @@ class NoCalibrator: Calibrator {
         
         findSlope(for: bgReading, last2Readings: &last3Readings)
         
-        // to make sure that very high or very low values are capped
-        updateCalculatedValue(for: bgReading)
-        
         return bgReading
     }
     
