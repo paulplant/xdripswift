@@ -204,8 +204,8 @@ public class BgReading: NSManagedObject {
 
     }
     
-    /// Return the BgRange value of the current BgReading value based on the configured objectives
-    func bgRange() -> BgRange {
+    /// Return the BgRange description/type of the current BgReading value based on the configured objectives
+    func bgRangeDescription() -> BgRangeDescription {
         
         // Prepare the bgReading value
         let bgValue = self.calculatedValue.mgdlToMmol(mgdl: UserDefaults.standard.bloodGlucoseUnitIsMgDl)
@@ -213,17 +213,17 @@ public class BgReading: NSManagedObject {
         if (bgValue >= UserDefaults.standard.urgentHighMarkValueInUserChosenUnit
             || bgValue <= UserDefaults.standard.urgentLowMarkValueInUserChosenUnit){
             // BG is higher than urgentHigh or lower than urgentLow objectives
-            return BgRange.urgent
+            return BgRangeDescription.urgent
         }
         
         if (bgValue >= UserDefaults.standard.highMarkValueInUserChosenUnit
             || bgValue <= UserDefaults.standard.lowMarkValueInUserChosenUnit){
             // BG is between urgentHigh/high and low/urgentLow objectives
-            return BgRange.notUrgent
+            return BgRangeDescription.notUrgent
         }
         
         // BG is not high or low so considered "in range"
-        return BgRange.inRange
+        return BgRangeDescription.inRange
     }
     
     /// taken over form xdripplus
