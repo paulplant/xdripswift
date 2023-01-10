@@ -3,7 +3,7 @@ import Foundation
 enum ConstantsWatch {
     
     /// text to add as notes in glucose events
-    static let textInCreatedEvent = "created by xdrip"
+    static let textInCreatedEvent = "created by xDrip4iOS"
     
     /// text to use as the visual indicator in the calendar title when bg is "Urgent"
     static let visualIndicatorUrgent = "🔴"

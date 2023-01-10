@@ -73,7 +73,7 @@ class SettingsViewAppleWatchSettingsViewModel: SettingsViewModelProtocol {
             return Texts_SettingsView.displayVisualIndicatorInCalendar
             
         case .calendarInterval:
-            return Texts_SettingsView.settingsviews_IntervalTitle
+            return Texts_SettingsView.settingsviews_CalenderIntervalTitle
 
         }
 
@@ -310,7 +310,7 @@ class SettingsViewAppleWatchSettingsViewModel: SettingsViewModelProtocol {
 
         case .calendarInterval:
         
-            return SettingsSelectedRowAction.askText(title: Texts_SettingsView.settingsviews_IntervalTitle, message: Texts_SettingsView.settingsviews_IntervalMessage, keyboardType: .numberPad, text: UserDefaults.standard.calendarInterval.description, placeHolder: "0", actionTitle: nil, cancelTitle: nil, actionHandler: {(interval:String) in if let interval = Int(interval) {UserDefaults.standard.calendarInterval = Int(interval)}}, cancelHandler: nil, inputValidator: nil)
+            return SettingsSelectedRowAction.askText(title: Texts_SettingsView.settingsviews_CalenderIntervalTitle, message: Texts_SettingsView.settingsviews_CalenderIntervalMessage, keyboardType: .numberPad, text: UserDefaults.standard.calendarInterval.description, placeHolder: "0", actionTitle: nil, cancelTitle: nil, actionHandler: {(interval:String) in if let interval = Int(interval) {UserDefaults.standard.calendarInterval = Int(interval)}}, cancelHandler: nil, inputValidator: nil)
 
         }
         
