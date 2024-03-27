@@ -634,6 +634,34 @@ class Trace {
                             
                         }
                         
+                    case .Libre3HeartBeatType:
+                        if blePeripheral.libre2heartbeat != nil {
+                            
+                            traceInfo.appendStringAndNewLine("        Type: " + bluetoothPeripheralType.rawValue)
+                            
+                        }
+                        
+                    case .DexcomG7HeartBeatType:
+                        if blePeripheral.dexcomG7HeartBeat != nil {
+                            
+                            traceInfo.appendStringAndNewLine("        Type: " + bluetoothPeripheralType.rawValue)
+                            
+                        }
+                        
+                    case .OmniPodHeartBeatType:
+                        if blePeripheral.omniPodHeartBeat != nil {
+                            
+                            traceInfo.appendStringAndNewLine("        Type: " + bluetoothPeripheralType.rawValue)
+                            
+                        }
+                        
+                    case .DexcomG7Type:
+                        if blePeripheral.dexcomG7 != nil {
+                            
+                            traceInfo.appendStringAndNewLine("        Type: " + bluetoothPeripheralType.rawValue)
+                            
+                        }
+                        
                     }
                 }
                 
