@@ -340,10 +340,10 @@ public class AlertManager:NSObject {
                                 if alertKind == .missedreading {
                                     
                                     if let content = content {
-
+                                        
                                         // schedule missed reading alert with same content
                                         self.scheduleMissedReadingAlert(snoozePeriodInMinutes: snoozePeriod, content: content)
-
+                                        
                                     } else if UserDefaults.standard.isMaster || (!UserDefaults.standard.isMaster && UserDefaults.standard.followerBackgroundKeepAliveType != .disabled && UserDefaults.standard.activeSensorStartDate != nil) {
                                         
                                         _ = self.checkAlertAndFire(alertKind: .missedreading, lastBgReading: nil, lastButOneBgREading: nil, lastCalibration: nil, transmitterBatteryInfo: nil)
@@ -694,7 +694,7 @@ public class AlertManager:NSObject {
             if delayInSecondsToUse == 0 {
                 trace("in checkAlert, raising alert %{public}@", log: self.log, category: ConstantsLog.categoryAlertManager, type: .info, alertKind.descriptionForLogging())
             } else {
-                trace("in checkAlert, raising alert %{public}@ with a delay of %{public}@ minutes - this is a scheduled future alert, it will not go off now", log: self.log, category: ConstantsLog.categoryAlertManager, type: .info, ((round(Double(delayInSecondsToUse)/60*10))/10).description)
+                trace("in checkAlert, raising alert %{public}@ with a delay of %{public}@ minutes - this is a scheduled future alert, it will not go off now", log: self.log, category: ConstantsLog.categoryAlertManager, type: .info, alertKind.descriptionForLogging(), ((Int(round(Double(delayInSecondsToUse)/60*10))/10)).description)
             }
 
             // check if app is allowed to send local notification and if not write info to trace
@@ -719,15 +719,10 @@ public class AlertManager:NSObject {
             return true
             
         } else {
-            
-            if !UserDefaults.standard.isMaster && UserDefaults.standard.followerBackgroundKeepAliveType == .disabled {
-                
-                trace("in checkAlert, there's no need to raise alert %{public}@ because we're in follower mode and keep-alive is disabled", log: self.log, category: ConstantsLog.categoryAlertManager, type: .info, alertKind.descriptionForLogging())
-                
+            if !UserDefaults.standard.isMaster && !UserDefaults.standard.followerBackgroundKeepAliveType.shouldKeepAlive {
+                trace("in checkAlert, there's no need to raise alert %{public}@ because we're in follower mode and keep-alive is: %[public]@", log: self.log, category: ConstantsLog.categoryAlertManager, type: .info, alertKind.descriptionForLogging(), UserDefaults.standard.followerBackgroundKeepAliveType.description)
             } else {
-                
                 trace("in checkAlert, there's no need to raise alert %{public}@", log: self.log, category: ConstantsLog.categoryAlertManager, type: .info, alertKind.descriptionForLogging())
-                
             }
             return false
         }
