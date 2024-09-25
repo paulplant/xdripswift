@@ -14,7 +14,6 @@ struct XDripWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         // Configuration for the activity widget
         ActivityConfiguration(for: XDripWidgetAttributes.self) { context in
-          
             LockScreenLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -142,9 +141,9 @@ struct XDripWidgetLiveActivity_Previews: PreviewProvider {
 }
 
 struct LockScreenLiveActivityContentView: View {
-    @Environment(\.colorScheme) var colorScheme // Detects whether the device is in dark or light mode
+    @Environment(\.colorScheme) var colorScheme
     @State var context: ActivityViewContext<XDripWidgetAttributes>
-//    let schemeName = Bundle.main.infoDictionary?["CURRENT_SCHEME_NAME"] as? String
+
     var body: some View {
         VStack {
             Group {
@@ -158,7 +157,6 @@ struct LockScreenLiveActivityContentView: View {
                             .minimumScaleFactor(0.1)
                             .lineLimit(1)
                         
-                        // Show the timestamp of the last glucose reading
                         Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
                             .foregroundStyle(.gray)
                             .opacity(1)
@@ -180,8 +178,7 @@ struct LockScreenLiveActivityContentView: View {
                             
                             Spacer()
                         }
-                        
-                        // Display delta change and blood glucose unit
+                 
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text(context.state.deltaChangeStringInUserChosenUnit())
                                 .font(.title)
@@ -375,7 +372,7 @@ struct EarlierLockScreenLiveActivityContentView: View {
 
 @available(iOS 18, *)
 struct SmartStackLiveActivityContentView: View {
-    @Environment(\.colorScheme) var colorScheme // Adjusts based on light/dark mode
+    @Environment(\.colorScheme) var colorScheme
     @State var context: ActivityViewContext<XDripWidgetAttributes>
     
     var body: some View {
@@ -413,7 +410,7 @@ struct SmartStackLiveActivityContentView: View {
                 
                 VStack(alignment: .center, spacing: 5) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        // Display delta and unit
+                        
                         Text(context.state.deltaChangeStringInUserChosenUnit())
                             .font(.system(size: 15))
                             .font(.title)
@@ -431,7 +428,7 @@ struct SmartStackLiveActivityContentView: View {
                             .lineLimit(1)
                     }
               
-                    // Display the last reading time
+                    
                     Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
                         .font(.system(size: 15))
                         .foregroundStyle(.primary)
@@ -443,7 +440,7 @@ struct SmartStackLiveActivityContentView: View {
             .padding([.top, .bottom], 0)
             .padding([.leading, .trailing], 20)
         }
-        .cornerRadius(15)
+        .activityBackgroundTint(.black)
     }
 }
 
