@@ -379,18 +379,20 @@ struct SmartStackLiveActivityContentView: View {
         ZStack {
         
             HStack(alignment: .center) {
-                HStack(alignment: .center) {
-                    Text(context.state.bgValueStringInUserChosenUnit)
-                        .font(.system(size: 24))
-                        .foregroundStyle(context.state.bgTextColor())
-                        .lineLimit(1)
-                        .fontWeight(.semibold)
-                    
-                    Text(context.state.trendArrow())
-                        .font(.system(size: 15))
-                        .foregroundStyle(context.state.bgTextColor())
-                        .lineLimit(1)
-                        .fontWeight(.semibold)
+                VStack(alignment: .leading) {
+                    HStack(alignment: .center, spacing: 10) {
+                        Text(context.state.bgValueStringInUserChosenUnit)
+                            .font(.system(size: 32))
+                            .minimumScaleFactor(0.2)
+                            .foregroundStyle(context.state.bgTextColor())
+                            .lineLimit(1)
+                            .fontWeight(.semibold)
+                        
+                        Text(context.state.trendArrow())
+                            .font(.system(size: 18))
+                            .foregroundStyle(context.state.bgTextColor())
+                            .lineLimit(1)
+                    }
                 }
                 
                 Spacer()

@@ -68,11 +68,13 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
             UserDefaults.standard.timeStampOfLastHeartBeat = timeStampOfLastHeartBeat
             
             // wait for a second to allow the official app to upload to LibreView before triggering the heartbeat announcement to the delegate
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.bluetoothTransmitterDelegate?.heartBeat()
+            Task {
+                do {
+                    self.bluetoothTransmitterDelegate?.heartBeat()
+                    
+                }
             }
         }
-
     }
     
     override func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
@@ -90,12 +92,15 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
             UserDefaults.standard.timeStampOfLastHeartBeat = timeStampOfLastHeartBeat
             
             // wait for a second to allow the official app to upload to LibreView before triggering the heartbeat announcement to the delegate
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.bluetoothTransmitterDelegate?.heartBeat()
+            Task {
+                do {
+                    self.bluetoothTransmitterDelegate?.heartBeat()
+                }
             }
         }
         
     }
+
     
     override func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         

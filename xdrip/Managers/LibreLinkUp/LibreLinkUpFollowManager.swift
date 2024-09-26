@@ -248,7 +248,7 @@ class LibreLinkUpFollowManager: NSObject {
                 if (self.libreLinkUpToken != nil && self.libreLinkUpPatientId != nil) {
                     
                     guard let patientId = self.libreLinkUpPatientId else { return }
-                    
+                    try await Task.sleep(nanoseconds: 4_000_000_000)
                     // at this stage, we've now got a valid authentication token and we know the patientId we need to follow
                     let graphResponse = try await requestGraph(patientId: patientId)
                     
