@@ -219,18 +219,18 @@ struct LockScreenLiveActivityContentView: View {
                                     .lineLimit(1)
                                 
                                 Text(context.state.bgUnitString)
-                                    .font(.system(size: 20))
+                                    .font(.system(size: 15))
                                     .foregroundStyle(.colorTertiary)
                                     .minimumScaleFactor(0.2)
                                     .lineLimit(1)
                                 
                       
                                 Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                                    .foregroundStyle(.gray)
+                                    .foregroundStyle(.colorTertiary)
                                     .opacity(1)
                                     .lineLimit(1)
-                                    .font(.system(size: 24))
-                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .font(.system(size: 15))
+                                 //   .frame(maxWidth: .infinity, alignment: .center)
                             }
                         }
             
@@ -420,6 +420,7 @@ struct SmartStackLiveActivityContentView: View {
                             .foregroundStyle(context.state.deltaChangeTextColor())
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
+                            .monospacedDigit()
                         
                         Text(context.state.bgUnitString)
                             .font(.system(size: 15))
@@ -428,6 +429,7 @@ struct SmartStackLiveActivityContentView: View {
                             .foregroundStyle(.primary)
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
+                            .monospacedDigit()
                     }
               
                     

@@ -1922,8 +1922,8 @@
 		4716A4F22B406C3D00419052 /* xDrip Widget */ = {
 			isa = PBXGroup;
 			children = (
-				6D29F14B2CA47D4300E5E96A /* SmartStackWatchOS.swift */,
 				4716A4FB2B406C3F00419052 /* Info.plist */,
+				6D29F14B2CA47D4300E5E96A /* SmartStackWatchOS.swift */,
 				4716A4F72B406C3D00419052 /* XDripWidget.swift */,
 				474606722B962B9500AC9214 /* XDripWidget+Entry.swift */,
 				474606742B962C4D00AC9214 /* XDripWidget+EntryView.swift */,
