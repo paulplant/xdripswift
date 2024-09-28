@@ -380,7 +380,7 @@ struct SmartStackLiveActivityContentView: View {
         
             HStack(alignment: .center) {
                 VStack(alignment: .leading) {
-                    HStack(alignment: .center, spacing: 10) {
+                    HStack(alignment: .center, spacing: 0) {  // Setează `spacing` la 0 pentru a elimina spațiul între elemente
                         Text(context.state.bgValueStringInUserChosenUnit)
                             .font(.system(size: 32))
                             .minimumScaleFactor(0.2)
@@ -388,6 +388,7 @@ struct SmartStackLiveActivityContentView: View {
                             .lineLimit(1)
                             .fontWeight(.semibold)
                         
+                        // Trend arrow legat de valoarea de glucoză, fără spațiu între ele
                         Text(context.state.trendArrow())
                             .font(.system(size: 18))
                             .foregroundStyle(context.state.bgTextColor())

@@ -11,6 +11,9 @@ import os
 import AVFoundation
 import AudioToolbox
 
+
+
+
 /// instance of this class will do the follower functionality. Just make an instance, it will listen to the settings, do the regular download if needed - it could be deallocated when isMaster setting in Userdefaults changes, but that's not necessary to do
 class LibreLinkUpFollowManager: NSObject {
     
@@ -89,7 +92,7 @@ class LibreLinkUpFollowManager: NSObject {
     
     /// initializer
     public init(coreDataManager:CoreDataManager, followerDelegate: FollowerDelegate) {
-        
+      
         // initialize non optional private properties
         self.coreDataManager = coreDataManager
         self.bgReadingsAccessor = BgReadingsAccessor(coreDataManager: coreDataManager)
@@ -150,7 +153,6 @@ class LibreLinkUpFollowManager: NSObject {
     /// - returns:
     ///     - BgReading : the new reading, not saved in the coredata
     public func createBgReading(followGlucoseData: FollowerBgReading) -> BgReading {
-        
         // set the device name in the BG Reading, especially useful for later uploading the Nightscout
         let deviceName = ConstantsHomeView.applicationName + " (LibreLinkUp)"
         
@@ -192,10 +194,8 @@ class LibreLinkUpFollowManager: NSObject {
         }
         
         return (calculatedValueSlope, hideSlope)
-        
     }
-    
-    
+
     /// download recent readings from LibreView, send result to delegate, and schedule new download
     @objc public func download() {
         
@@ -227,9 +227,8 @@ class LibreLinkUpFollowManager: NSObject {
             trace("    libreLinkUpPassword is nil", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
             return
         }
-
+        
         Task {
-            
             do {
                 
                 // LibreLink follower based upon process outlined here:
@@ -248,7 +247,7 @@ class LibreLinkUpFollowManager: NSObject {
                 if (self.libreLinkUpToken != nil && self.libreLinkUpPatientId != nil) {
                     
                     guard let patientId = self.libreLinkUpPatientId else { return }
-                    try await Task.sleep(nanoseconds: 4_000_000_000)
+                    
                     // at this stage, we've now got a valid authentication token and we know the patientId we need to follow
                     let graphResponse = try await requestGraph(patientId: patientId)
                     
@@ -690,13 +689,15 @@ class LibreLinkUpFollowManager: NSObject {
         trace("in scheduleNewDownload", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
         
         // schedule a timer for 60 seconds and assign it to a let property
-        let downloadTimer = Timer.scheduledTimer(timeInterval: 60, target: self, selector: #selector(self.download), userInfo: nil, repeats: false)
+        let downloadTimer = Timer.scheduledTimer(timeInterval: 0, target: self, selector: #selector(self.download), userInfo: nil, repeats: false)
         
         // assign invalidateDownLoadTimerClosure to a closure that will invalidate the downloadTimer
         invalidateDownLoadTimerClosure = {
             downloadTimer.invalidate()
         }
     }
+    
+    
     
     /// process result from download
     /// - parameters:
