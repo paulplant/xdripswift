@@ -10,6 +10,13 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
+
+
+func isAlarm(glucoseValue: Double, context: ActivityViewContext<XDripWidgetAttributes>) -> Bool {
+    return (glucoseValue < Double(context.state.lowLimitInMgDl)) || (glucoseValue > Double(context.state.highLimitInMgDl))
+}
+
+
 struct XDripWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         // Configuration for the activity widget
@@ -72,6 +79,7 @@ struct XDripWidgetLiveActivity: Widget {
 }
 
 struct XDripWidgetLiveActivity_Previews: PreviewProvider {
+ 
    
     static func bgDateArray() -> [Date] {
         let endDate = Date()
@@ -377,21 +385,23 @@ struct SmartStackLiveActivityContentView: View {
     
     var body: some View {
         ZStack {
-        
+            let glucoseValue = context.state.bgReadingValues.last ?? 0.0
+            context.state.backgroundWidgetColor()
+                .ignoresSafeArea()
             HStack(alignment: .center) {
                 VStack(alignment: .leading) {
                     HStack(alignment: .center, spacing: 0) {  // Setează `spacing` la 0 pentru a elimina spațiul între elemente
                         Text(context.state.bgValueStringInUserChosenUnit)
                             .font(.system(size: 32))
                             .minimumScaleFactor(0.2)
-                            .foregroundStyle(context.state.bgTextColor())
+                      //      .foregroundStyle(context.state.bgTextColor())
                             .lineLimit(1)
                             .fontWeight(.semibold)
                         
                         // Trend arrow legat de valoarea de glucoză, fără spațiu între ele
                         Text(context.state.trendArrow())
                             .font(.system(size: 18))
-                            .foregroundStyle(context.state.bgTextColor())
+                        //    .foregroundStyle(context.state.bgTextColor())
                             .lineLimit(1)
                     }
                 }
@@ -415,16 +425,16 @@ struct SmartStackLiveActivityContentView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         
                         Text(context.state.deltaChangeStringInUserChosenUnit())
-                            .font(.system(size: 15))
+                            .font(.system(size: 20))
                             .font(.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(context.state.deltaChangeTextColor())
+                     //       .foregroundStyle(context.state.deltaChangeTextColor())
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
                             .monospacedDigit()
                         
                         Text(context.state.bgUnitString)
-                            .font(.system(size: 15))
+                            .font(.system(size: 20))
                             .font(.title)
                             .fontWeight(.semibold)
                             .foregroundStyle(.primary)
@@ -435,7 +445,7 @@ struct SmartStackLiveActivityContentView: View {
               
                     
                     Text(context.state.bgReadingDate?.formatted(date: .omitted, time: .shortened) ?? "--:--")
-                        .font(.system(size: 15))
+                        .font(.system(size: 20))
                         .foregroundStyle(.primary)
                         .fontWeight(.semibold)
                         .minimumScaleFactor(0.2)
@@ -445,7 +455,7 @@ struct SmartStackLiveActivityContentView: View {
             .padding([.top, .bottom], 0)
             .padding([.leading, .trailing], 20)
         }
-        .activityBackgroundTint(.black)
+     //   .activityBackgroundTint(.black)
     }
 }
 
@@ -481,3 +491,4 @@ struct LockScreenLiveActivityView: View {
         }
     }
 }
+

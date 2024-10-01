@@ -69,7 +69,7 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
             
             // wait for a second to allow the official app to upload to LibreView before triggering the heartbeat announcement to the delegate
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
                 do {
                     self.bluetoothTransmitterDelegate?.heartBeat()
                 }
@@ -93,7 +93,7 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
             
             // wait for a second to allow the official app to upload to LibreView before triggering the heartbeat announcement to the delegate
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
                 do {
                     self.bluetoothTransmitterDelegate?.heartBeat()
                 }

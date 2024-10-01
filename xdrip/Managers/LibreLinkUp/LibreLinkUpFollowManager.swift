@@ -689,7 +689,7 @@ class LibreLinkUpFollowManager: NSObject {
         trace("in scheduleNewDownload", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
         
         // schedule a timer for 60 seconds and assign it to a let property
-        let downloadTimer = Timer.scheduledTimer(timeInterval: 0, target: self, selector: #selector(self.download), userInfo: nil, repeats: false)
+        let downloadTimer = Timer.scheduledTimer(timeInterval: 60, target: self, selector: #selector(self.download), userInfo: nil, repeats: false)
         
         // assign invalidateDownLoadTimerClosure to a closure that will invalidate the downloadTimer
         invalidateDownLoadTimerClosure = {
