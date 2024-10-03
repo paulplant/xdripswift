@@ -285,14 +285,14 @@ struct LockScreenLiveActivityContentView: View {
                    
                     ZStack {
                         VStack(spacing: 0) {
-                            HStack(alignment: .center) {
+                            HStack(alignment: .lastTextBaseline, spacing: 20) {
                                 // Glucose value and trend arrow
                                 Text("\(context.state.bgValueStringInUserChosenUnit) \(context.state.trendArrow())")
                                     .font(.system(size: 32))
                                     .fontWeight(.bold)
                                     .foregroundStyle(context.state.bgTextColor())
                                     .scaledToFill()
-                                    .minimumScaleFactor(0.5)
+                                    .minimumScaleFactor(0.2)
                                     .lineLimit(1)
                                 
                                 Spacer()
@@ -385,54 +385,36 @@ struct SmartStackLiveActivityContentView: View {
     
     var body: some View {
         ZStack {
-            let glucoseValue = context.state.bgReadingValues.last ?? 0.0
             context.state.backgroundWidgetColor()
                 .ignoresSafeArea()
-            HStack(alignment: .center) {
+            HStack() {
                 VStack(alignment: .leading) {
-                    HStack(alignment: .center, spacing: 0) {  // Setează `spacing` la 0 pentru a elimina spațiul între elemente
-                        Text(context.state.bgValueStringInUserChosenUnit)
-                            .font(.system(size: 32))
-                            .minimumScaleFactor(0.2)
-                      //      .foregroundStyle(context.state.bgTextColor())
-                            .lineLimit(1)
-                            .fontWeight(.semibold)
-                        
-                        // Trend arrow legat de valoarea de glucoză, fără spațiu între ele
-                        Text(context.state.trendArrow())
-                            .font(.system(size: 18))
-                        //    .foregroundStyle(context.state.bgTextColor())
-                            .lineLimit(1)
+                    HStack(alignment: .center, spacing: 0) {
+                        Spacer()
+                        VStack {
+                            Text(context.state.bgValueStringInUserChosenUnit)
+                                .foregroundColor(.brightWhite)
+                                .font(.system(size: 36))
+                                .minimumScaleFactor(0.2)
+                           //     .lineLimit(1)
+                                .fontWeight(.semibold)
+                        }
+                            Text(context.state.trendArrow())
+                                .font(.system(size: 20))
+                                .lineLimit(1)
                     }
                 }
                 
-                Spacer()
-      
-                if context.state.warnUserToOpenApp {
-                    Text("Open app...")
-                        .font(.footnote)
-                        .bold()
-                        .foregroundStyle(.black)
-                        .multilineTextAlignment(.center)
-                        .padding(EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10))
-                        .background(Color.cyan.opacity(0.8))
-                        .cornerRadius(10)
-                    
-                    Spacer()
-                }
-                
                 VStack(alignment: .center, spacing: 5) {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        
-                        Text(context.state.deltaChangeStringInUserChosenUnit())
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                      Text(context.state.deltaChangeStringInUserChosenUnit())
                             .font(.system(size: 20))
                             .font(.title)
                             .fontWeight(.semibold)
-                     //       .foregroundStyle(context.state.deltaChangeTextColor())
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
                             .monospacedDigit()
-                        
+           
                         Text(context.state.bgUnitString)
                             .font(.system(size: 20))
                             .font(.title)
@@ -441,6 +423,7 @@ struct SmartStackLiveActivityContentView: View {
                             .minimumScaleFactor(0.2)
                             .lineLimit(1)
                             .monospacedDigit()
+                            .frame(alignment: .center)
                     }
               
                     
@@ -452,8 +435,8 @@ struct SmartStackLiveActivityContentView: View {
                         .lineLimit(1)
                 }
             }
-            .padding([.top, .bottom], 0)
-            .padding([.leading, .trailing], 20)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .font(.footnote)
         }
      //   .activityBackgroundTint(.black)
     }

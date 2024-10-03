@@ -126,14 +126,14 @@ struct XDripWidgetAttributes: ActivityAttributes {
                     
                     } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
                         return LinearGradient(
-                            gradient: Gradient(colors: [Color.magentaRed.opacity(0.7), Color.magentaRed.opacity(0.5)]),
+                            gradient: Gradient(colors: [Color.yellow.opacity(0.7), Color.yellow.opacity(0.5)]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     
                     } else {
                         return LinearGradient(
-                            gradient: Gradient(colors: [Color.paleTurquoise.opacity(0.7), Color.paleTurquoise.opacity(0.5)]),
+                            gradient: Gradient(colors: [Color.paleGreen.opacity(0.7), Color.paleGreen.opacity(0.5)]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -222,4 +222,6 @@ extension Color {
     static let rubyRed = Color(red: 155/255, green: 17/255, blue: 30/255)
     static let magentaRed = Color(red: 255/255, green: 62/255, blue: 106/255)
     static let appleBlue = Color(red: 14.0/255.0, green: 122.0/255.0, blue: 254.0/255.0)
+    static let paleYellow = Color(red: 255/255, green: 255/255, blue: 153/255)
+    static let paleGreen = Color(red: 12/255, green: 224/255, blue: 108/255)
 }
