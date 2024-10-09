@@ -19,7 +19,7 @@ public final class LiveActivityManager {
     private let log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryLiveActivityManager)
     
     private var eventAttributes: XDripWidgetAttributes
-    private var eventActivity: Activity<XDripWidgetAttributes>?
+     var eventActivity: Activity<XDripWidgetAttributes>?
     
     // the start date of the event so when know track when to proactively end/restart the activity
     private var eventStartDate: Date
@@ -106,7 +106,7 @@ extension LiveActivityManager {
     
     /// will start a new live activity event based upon the content state passed to the function
     /// - Parameter contentState: the content state of the new activity
-    private func startActivity(contentState: XDripWidgetAttributes.ContentState) {
+     func startActivity(contentState: XDripWidgetAttributes.ContentState) {
         
         // as we're starting a new activity in the current event, let's set the eventStartDate so we can track how long it has been running
         eventStartDate = Date()
@@ -132,7 +132,7 @@ extension LiveActivityManager {
     
     /// update the current live activity
     /// - Parameter contentState: the updated context state of the activity
-    private func updateActivity(to contentState: XDripWidgetAttributes.ContentState) async {
+        func updateActivity(to contentState: XDripWidgetAttributes.ContentState) async {
         
         // check if the activity is dismissed by the user (by swiping away the notification)
         // if so, then end it completely and start a new one

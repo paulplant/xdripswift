@@ -133,7 +133,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
                     
                     } else {
                         return LinearGradient(
-                            gradient: Gradient(colors: [Color.paleGreen.opacity(0.7), Color.paleGreen.opacity(0.5)]),
+                            gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.8)]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -142,7 +142,7 @@ struct XDripWidgetAttributes: ActivityAttributes {
             }
            
             return LinearGradient(
-                gradient: Gradient(colors: [Color.paleTurquoise.opacity(0.7), Color.paleTurquoise.opacity(0.5)]),
+                gradient: Gradient(colors: [Color.screamingGreen.opacity(0.8), Color.screamingGreen.opacity(0.8)]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -224,4 +224,10 @@ extension Color {
     static let appleBlue = Color(red: 14.0/255.0, green: 122.0/255.0, blue: 254.0/255.0)
     static let paleYellow = Color(red: 255/255, green: 255/255, blue: 153/255)
     static let paleGreen = Color(red: 12/255, green: 224/255, blue: 108/255)
+    static let screamingGreen = Color(red: 61/255, green: 255/255, blue: 139/255)
+}
+struct LiveActivityError: LocalizedError {
+    var errorDescription: String? {
+        return "No Data"
+    }
 }

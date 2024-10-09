@@ -16,7 +16,6 @@ func isAlarm(glucoseValue: Double, context: ActivityViewContext<XDripWidgetAttri
     return (glucoseValue < Double(context.state.lowLimitInMgDl)) || (glucoseValue > Double(context.state.highLimitInMgDl))
 }
 
-
 struct XDripWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         // Configuration for the activity widget

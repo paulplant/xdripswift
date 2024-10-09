@@ -205,7 +205,7 @@
 		47EDD1492BDD56C800C5A286 /* WatchApp.strings in Resources */ = {isa = PBXBuildFile; fileRef = 47EDD1472BDD56C800C5A286 /* WatchApp.strings */; };
 		47EDD15A2BE01E9000C5A286 /* ConstantsWatchComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47EDD1592BE01E9000C5A286 /* ConstantsWatchComplication.swift */; };
 		47FB28082636B04200042FFB /* StatisticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FB28072636B04200042FFB /* StatisticsManager.swift */; };
-		6D29F14C2CA47D5200E5E96A /* SmartStackWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D29F14B2CA47D4300E5E96A /* SmartStackWatchOS.swift */; };
+		6D29F14C2CA47D5200E5E96A /* XdripWidgetSmartStackWatchOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D29F14B2CA47D4300E5E96A /* XdripWidgetSmartStackWatchOS.swift */; };
 		CE1B2FE025D0264B00F642F5 /* LaunchScreen.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE1B2FD125D0264900F642F5 /* LaunchScreen.strings */; };
 		CE1B2FE125D0264B00F642F5 /* Main.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE1B2FD425D0264900F642F5 /* Main.strings */; };
 		D400F8032778BD8000B57648 /* TextsTreatmentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D400F8022778BD8000B57648 /* TextsTreatmentsView.swift */; };
@@ -1029,7 +1029,7 @@
 		47FB28072636B04200042FFB /* StatisticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsManager.swift; sourceTree = "<group>"; };
 		666E283826F7E54C00ACE4DF /* xDrip.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = xDrip.xcconfig; path = xdrip/xDrip.xcconfig; sourceTree = "<group>"; };
 		666E283926F7E54C00ACE4DF /* Version.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Version.xcconfig; path = xdrip/Version.xcconfig; sourceTree = "<group>"; };
-		6D29F14B2CA47D4300E5E96A /* SmartStackWatchOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartStackWatchOS.swift; sourceTree = "<group>"; };
+		6D29F14B2CA47D4300E5E96A /* XdripWidgetSmartStackWatchOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XdripWidgetSmartStackWatchOS.swift; sourceTree = "<group>"; };
 		CE1B2FC825D0261500F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Alerts.strings; sourceTree = "<group>"; };
 		CE1B2FCD25D0264900F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/AlertTypesSettingsView.strings; sourceTree = "<group>"; };
 		CE1B2FCE25D0264900F642F5 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/WatlaaView.strings; sourceTree = "<group>"; };
@@ -1923,7 +1923,7 @@
 			isa = PBXGroup;
 			children = (
 				4716A4FB2B406C3F00419052 /* Info.plist */,
-				6D29F14B2CA47D4300E5E96A /* SmartStackWatchOS.swift */,
+				6D29F14B2CA47D4300E5E96A /* XdripWidgetSmartStackWatchOS.swift */,
 				4716A4F72B406C3D00419052 /* XDripWidget.swift */,
 				474606722B962B9500AC9214 /* XDripWidget+Entry.swift */,
 				474606742B962C4D00AC9214 /* XDripWidget+EntryView.swift */,
@@ -4175,7 +4175,7 @@
 				47A6AC2D2B7D3E170047A4BA /* Date.swift in Sources */,
 				471C9C002B932957005E1326 /* LibreLinkUpModels.swift in Sources */,
 				47CA61E42B965E7100C2A597 /* AccessoryCircularView.swift in Sources */,
-				6D29F14C2CA47D5200E5E96A /* SmartStackWatchOS.swift in Sources */,
+				6D29F14C2CA47D5200E5E96A /* XdripWidgetSmartStackWatchOS.swift in Sources */,
 				471C9C082B94F0F0005E1326 /* Bundle.swift in Sources */,
 				4746067E2B962FBD00AC9214 /* SystemLargeView.swift in Sources */,
 				4716A5052B40709E00419052 /* XDripWidgetAttributes.swift in Sources */,

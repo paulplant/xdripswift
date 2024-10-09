@@ -11,9 +11,6 @@ import os
 import AVFoundation
 import AudioToolbox
 
-
-
-
 /// instance of this class will do the follower functionality. Just make an instance, it will listen to the settings, do the regular download if needed - it could be deallocated when isMaster setting in Userdefaults changes, but that's not necessary to do
 class LibreLinkUpFollowManager: NSObject {
     
@@ -34,7 +31,7 @@ class LibreLinkUpFollowManager: NSObject {
     private var bgReadingsAccessor: BgReadingsAccessor
     
     /// delegate to pass back glucosedata
-    private(set) weak var followerDelegate: FollowerDelegate?
+    private (set) weak var followerDelegate: FollowerDelegate?
     
     /// AVAudioPlayer to use
     private var audioPlayer:AVAudioPlayer?
@@ -92,7 +89,7 @@ class LibreLinkUpFollowManager: NSObject {
     
     /// initializer
     public init(coreDataManager:CoreDataManager, followerDelegate: FollowerDelegate) {
-      
+        
         // initialize non optional private properties
         self.coreDataManager = coreDataManager
         self.bgReadingsAccessor = BgReadingsAccessor(coreDataManager: coreDataManager)
@@ -153,6 +150,7 @@ class LibreLinkUpFollowManager: NSObject {
     /// - returns:
     ///     - BgReading : the new reading, not saved in the coredata
     public func createBgReading(followGlucoseData: FollowerBgReading) -> BgReading {
+        
         // set the device name in the BG Reading, especially useful for later uploading the Nightscout
         let deviceName = ConstantsHomeView.applicationName + " (LibreLinkUp)"
         
@@ -194,8 +192,10 @@ class LibreLinkUpFollowManager: NSObject {
         }
         
         return (calculatedValueSlope, hideSlope)
+        
     }
-
+    
+    
     /// download recent readings from LibreView, send result to delegate, and schedule new download
     @objc public func download() {
         
@@ -227,8 +227,9 @@ class LibreLinkUpFollowManager: NSObject {
             trace("    libreLinkUpPassword is nil", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info)
             return
         }
-        
+
         Task {
+            
             do {
                 
                 // LibreLink follower based upon process outlined here:
@@ -509,7 +510,7 @@ class LibreLinkUpFollowManager: NSObject {
         print(loginUrl.description)
         trace("    in requestLogin, processing login request with URL: %{public}@", log: self.log, category: ConstantsLog.categoryLibreLinkUpFollowManager, type: .info, loginUrl)
         
-        guard let url = URL(string: loginUrl) else { 
+        guard let url = URL(string: loginUrl) else {
             
             throw LibreLinkUpFollowError.urlErrorLogin
             
@@ -696,8 +697,6 @@ class LibreLinkUpFollowManager: NSObject {
             downloadTimer.invalidate()
         }
     }
-    
-    
     
     /// process result from download
     /// - parameters:
