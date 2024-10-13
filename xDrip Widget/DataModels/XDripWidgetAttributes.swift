@@ -119,14 +119,14 @@ struct XDripWidgetAttributes: ActivityAttributes {
                     
                     if bgValueInMgDl >= urgentHighLimitInMgDl || bgValueInMgDl <= urgentLowLimitInMgDl {
                         return LinearGradient(
-                            gradient: Gradient(colors: [Color.red.opacity(0.7), Color.red.opacity(0.5)]),
+                            gradient: Gradient(colors: [Color.red.opacity(0.9), Color.red.opacity(0.9)]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     
                     } else if bgValueInMgDl >= highLimitInMgDl || bgValueInMgDl <= lowLimitInMgDl {
                         return LinearGradient(
-                            gradient: Gradient(colors: [Color.yellow.opacity(0.7), Color.yellow.opacity(0.5)]),
+                            gradient: Gradient(colors: [Color.yellow.opacity(0.9), Color.yellow.opacity(0.7)]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )

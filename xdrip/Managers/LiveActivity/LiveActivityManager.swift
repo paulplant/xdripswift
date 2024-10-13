@@ -13,7 +13,7 @@ import SwiftUI
 
 /// manager class to handle the live activity events
 public final class LiveActivityManager {
-    
+
     // MARK: - Private variables
     /// for trace
     private let log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryLiveActivityManager)

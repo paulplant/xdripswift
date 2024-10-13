@@ -22,6 +22,7 @@ struct GlucoseIntent: AppIntent {
     static var description: IntentDescription? {
         IntentDescription("Ask to read out your blood glucose level.", categoryName: "Information")
     }
+    
 
     @MainActor
     func perform() async throws -> some ReturnsValue<Double> & ProvidesDialog & ShowsSnippetView {
