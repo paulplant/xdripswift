@@ -737,6 +737,10 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
 
     // MARK: - CGMTransmitter protocol functions
     
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {
+        cgmTransmitterDelegate = delegate
+    }
+    
     func setWebOOPEnabled(enabled: Bool) {
         if webOOPEnabled != enabled {
             webOOPEnabled = enabled

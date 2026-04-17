@@ -560,6 +560,10 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter {
     
     // MARK: - CGMTransmitter protocol functions
     
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {
+        cgmTransmitterDelegate = delegate
+    }
+    
     func cgmTransmitterType() -> CGMTransmitterType {
         return .dexcomG7
     }

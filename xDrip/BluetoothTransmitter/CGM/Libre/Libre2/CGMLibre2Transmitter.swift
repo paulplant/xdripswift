@@ -308,6 +308,10 @@ class CGMLibre2Transmitter: BluetoothTransmitter, CGMTransmitter {
 
     // MARK: - CGMTransmitter protocol functions
     
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {
+        cgmTransmitterDelegate = delegate
+    }
+    
     func setNonFixedSlopeEnabled(enabled: Bool) {
         if nonFixedSlopeEnabled != enabled {
             nonFixedSlopeEnabled = enabled

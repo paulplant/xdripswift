@@ -30,8 +30,8 @@ class BluetoothPeripheralManager: NSObject {
     /// if scan is called, and a connection is successfully made to a new device, then this function must be called
     public var callBackAfterDiscoveringDevice: ((BluetoothPeripheral) -> Void)?
 
-    /// used to present alert messages
-    public let uIViewController: UIViewController
+    /// used to present alert messages (optional during app-level bootstrap before UI is ready)
+    public weak var uIViewController: UIViewController?
     
     /// bluetoothtransmitter may need pairing, but app is in background. Notification will be sent to user, user will open the app, at that moment pairing can happen. variable bluetoothTransmitterThatNeedsPairing will temporary store the BluetoothTransmitter that needs the pairing
     public var bluetoothTransmitterThatNeedsPairing: BluetoothTransmitter?
@@ -86,17 +86,17 @@ class BluetoothPeripheralManager: NSObject {
     private let keyValueObserverTimeKeeper:KeyValueObserverTimeKeeper = KeyValueObserverTimeKeeper()
     
     /// will be used to pass back bluetooth and cgm related events, probably temporary ?
-    private(set) weak var cgmTransmitterDelegate:CGMTransmitterDelegate?
+    private weak var cgmTransmitterDelegate:CGMTransmitterDelegate?
     
     /// function to call if BluetoothPeripheralManager receives heartbeat from a bluetooth peripheral
-    public let heartBeatFunction: (() -> ())?
+    public var heartBeatFunction: (() -> ())?
     
     // MARK: - initializer
     
     /// - parameters:
     ///     - cgmTransmitterInfoChanged : to be called when currently used cgmTransmitter changes
-    ///     - uIViewController : used to present alert messages
-    init(coreDataManager: CoreDataManager, cgmTransmitterDelegate: CGMTransmitterDelegate, uIViewController: UIViewController, heartBeatFunction: (() -> ())?, cgmTransmitterInfoChanged: @escaping () -> ()) {
+    ///     - uIViewController : used to present alert messages (can be nil during app bootstrap)
+    init(coreDataManager: CoreDataManager, cgmTransmitterDelegate: CGMTransmitterDelegate?, uIViewController: UIViewController?, heartBeatFunction: (() -> ())?, cgmTransmitterInfoChanged: @escaping () -> ()) {
         
         // initialize properties
         self.coreDataManager = coreDataManager
@@ -117,9 +117,47 @@ class BluetoothPeripheralManager: NSObject {
         // by calling this function in defer block, it will be executed after init has finished.
         // when assigning a value to currentCgmTransmitterAddress, the didset in that func will be triggered (which was not the case if the assignment happens within the init function)
         defer {
-            setupBLEPeripherals(cgmTransmitterDelegate: cgmTransmitterDelegate)
+            if let cgmTransmitterDelegate = cgmTransmitterDelegate {
+                setupBLEPeripherals(cgmTransmitterDelegate: cgmTransmitterDelegate)
+            } else {
+                trace("in init, cgmTransmitterDelegate is nil, skipping BLE peripheral setup until runtime binding is provided", log: log, category: ConstantsLog.categoryBluetoothPeripheralManager, type: .info)
+            }
         }
 
+    }
+    
+    /// Rebind runtime dependencies once UI and full CGM delegate are available.
+    /// This is used when BLE is bootstrapped at app lifecycle before RootViewController exists.
+    func updateRuntimeBindings(cgmTransmitterDelegate: CGMTransmitterDelegate, uIViewController: UIViewController?, heartBeatFunction: (() -> ())?, cgmTransmitterInfoChanged: @escaping () -> ()) {
+        self.cgmTransmitterDelegate = cgmTransmitterDelegate
+        self.uIViewController = uIViewController
+        self.heartBeatFunction = heartBeatFunction
+        self.cgmTransmitterInfoChanged = cgmTransmitterInfoChanged
+        
+        // Existing transmitters were potentially created during app bootstrap.
+        // Rebind CGM event routing to the active runtime delegate.
+        for bluetoothTransmitter in bluetoothTransmitters {
+            if let cgmTransmitter = bluetoothTransmitter as? CGMTransmitter {
+                cgmTransmitter.updateCGMTransmitterDelegate(cgmTransmitterDelegate)
+            }
+        }
+    }
+    
+    /// Presents an alert only when UI is available and app is foregrounded.
+    /// During background/headless bootstrap we intentionally skip modal presentation.
+    func presentAlertIfPossible(_ alert: UIAlertController) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard UIApplication.shared.applicationState != .background else {
+                trace("in presentAlertIfPossible, app is backgrounded; skipping alert presentation", log: self.log, category: ConstantsLog.categoryBluetoothPeripheralManager, type: .info)
+                return
+            }
+            guard let uIViewController = self.uIViewController else {
+                trace("in presentAlertIfPossible, uiViewController is nil; skipping alert presentation", log: self.log, category: ConstantsLog.categoryBluetoothPeripheralManager, type: .info)
+                return
+            }
+            uIViewController.present(alert, animated: true, completion: nil)
+        }
     }
     
     // MARK: - public functions
@@ -1080,6 +1118,89 @@ class BluetoothPeripheralManager: NSObject {
 
 }
 
+/// App-level bootstrap for BLE/CoreData so restoration does not depend on UI controller construction.
+final class BluetoothBootstrapService {
+    
+    static let shared = BluetoothBootstrapService()
+    
+    private enum State {
+        case idle
+        case starting
+        case ready(coreDataManager: CoreDataManager, bluetoothPeripheralManager: BluetoothPeripheralManager)
+    }
+    
+    private let queue = DispatchQueue(label: "bt.bootstrap.service")
+    private var state: State = .idle
+    private var pendingReadyHandlers: [((CoreDataManager, BluetoothPeripheralManager) -> ())] = []
+    private let bootstrapDelegate = BootstrapCGMTransmitterDelegate()
+    
+    private init() {}
+    
+    func startIfNeeded() {
+        queue.async { [weak self] in
+            self?.startIfNeededLocked()
+        }
+    }
+    
+    func whenReady(_ handler: @escaping (CoreDataManager, BluetoothPeripheralManager) -> ()) {
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            
+            switch self.state {
+            case .ready(let coreDataManager, let bluetoothPeripheralManager):
+                DispatchQueue.main.async {
+                    handler(coreDataManager, bluetoothPeripheralManager)
+                }
+                
+            case .idle, .starting:
+                self.pendingReadyHandlers.append(handler)
+                self.startIfNeededLocked()
+            }
+        }
+    }
+    
+    private func startIfNeededLocked() {
+        guard case .idle = state else { return }
+        state = .starting
+        
+        var localCoreDataManager: CoreDataManager?
+        localCoreDataManager = CoreDataManager(modelName: ConstantsCoreData.modelName, completion: { [weak self] in
+            guard let self = self, let coreDataManager = localCoreDataManager else { return }
+            DispatchQueue.main.async {
+                let bluetoothPeripheralManager = BluetoothPeripheralManager(
+                    coreDataManager: coreDataManager,
+                    cgmTransmitterDelegate: self.bootstrapDelegate,
+                    uIViewController: nil,
+                    heartBeatFunction: nil,
+                    cgmTransmitterInfoChanged: {}
+                )
+                
+                self.queue.async {
+                    self.state = .ready(coreDataManager: coreDataManager, bluetoothPeripheralManager: bluetoothPeripheralManager)
+                    
+                    let handlers = self.pendingReadyHandlers
+                    self.pendingReadyHandlers.removeAll()
+                    
+                    DispatchQueue.main.async {
+                        for readyHandler in handlers {
+                            readyHandler(coreDataManager, bluetoothPeripheralManager)
+                        }
+                    }
+                }
+            }
+        })
+    }
+}
+
+/// Headless delegate used during bootstrap before RootViewController is constructed.
+private final class BootstrapCGMTransmitterDelegate: CGMTransmitterDelegate {
+    func newSensorDetected(sensorStartDate: Date?) {}
+    func sensorStopDetected() {}
+    func sensorNotDetected() {}
+    func cgmTransmitterInfoReceived(glucoseData: inout [GlucoseData], transmitterBatteryInfo: TransmitterBatteryInfo?, sensorAge: TimeInterval?) {}
+    func errorOccurred(xDripError: XdripError) {}
+}
+
 // MARK: - conform to BluetoothPeripheralManaging
 
 extension BluetoothPeripheralManager: BluetoothPeripheralManaging {
@@ -1287,5 +1408,3 @@ extension BluetoothPeripheralManager: BluetoothPeripheralManaging {
     }
     
 }
-
-

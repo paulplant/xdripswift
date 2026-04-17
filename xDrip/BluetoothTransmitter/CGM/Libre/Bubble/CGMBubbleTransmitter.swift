@@ -384,6 +384,10 @@ class CGMBubbleTransmitter: BluetoothTransmitter, CGMTransmitter {
     
     // MARK: CGMTransmitter protocol functions
     
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {
+        cgmTransmitterDelegate = delegate
+    }
+    
     func setNonFixedSlopeEnabled(enabled: Bool) {
         
         if nonFixedSlopeEnabled != enabled {

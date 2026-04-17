@@ -29,6 +29,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         // Keep appInForeGround aligned as early as possible (used by BLE scanning policy).
         UserDefaults.standard.appInForeGround = application.applicationState != .background
+        
+        // Bootstrap BLE/CoreData independently from UI lifecycle for restoration/reconnect reliability.
+        BluetoothBootstrapService.shared.startIfNeeded()
 
         if let restoredCentrals = launchOptions?[.bluetoothCentrals] as? [String], !restoredCentrals.isEmpty {
             trace("in didFinishLaunchingWithOptions, launched for bluetooth central restoration (%{public}d central identifiers)", log: log, category: ConstantsLog.categoryAppDelegate, type: .info, restoredCentrals.count)

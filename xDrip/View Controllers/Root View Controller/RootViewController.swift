@@ -815,13 +815,15 @@ final class RootViewController: UIViewController, ObservableObject {
         // nillify the active sensor start date on start-up
         UserDefaults.standard.activeSensorStartDate = nil
         
-        // Setup Core Data Manager - setting up coreDataManager happens asynchronously
-        // completion handler is called when finished. This gives the app time to already continue setup which is independent of coredata, like initializing the views
-        coreDataManager = CoreDataManager(modelName: ConstantsCoreData.modelName, completion: {
+        // CoreData + BLE bootstrap is app-level and asynchronous.
+        // When ready, attach RootViewController runtime delegates and continue normal startup.
+        BluetoothBootstrapService.shared.whenReady { [weak self] (coreDataManager, bluetoothPeripheralManager) in
+            guard let self = self else { return }
             
-            self.setupApplicationData()
+            self.coreDataManager = coreDataManager
+            self.setupApplicationData(existingBluetoothPeripheralManager: bluetoothPeripheralManager)
             
-            // housekeeper should be non nil here, kall housekeeper
+            // housekeeper should be non nil here, call housekeeper
             self.houseKeeper?.doAppStartUpHouseKeeping()
             
             // update label texts, minutes ago, diff and value
@@ -862,8 +864,7 @@ final class RootViewController: UIViewController, ObservableObject {
             self.setNightscoutSyncRequiredToTrue(forceNow: true)
             
             self.updateLiveActivityAndWidgets(forceRestart: false)
-            
-        })
+        }
         
         // Setup View
         setupView()
@@ -1111,7 +1112,7 @@ final class RootViewController: UIViewController, ObservableObject {
     }
     
     // creates activeSensor, bgreadingsAccessor, calibrationsAccessor, NightscoutSyncManager, soundPlayer, dexcomShareUploadManager, nightscoutFollowManager, alertManager, healthKitManager, bgReadingSpeaker, bluetoothPeripheralManager, calendarManager, housekeeper, contactImageManager
-    private func setupApplicationData() {
+    private func setupApplicationData(existingBluetoothPeripheralManager: BluetoothPeripheralManager? = nil) {
         
         // setup Trace
         Trace.initialize(coreDataManager: coreDataManager)
@@ -1227,14 +1228,32 @@ final class RootViewController: UIViewController, ObservableObject {
             
         }
         
-        // setup bluetoothPeripheralManager
-        bluetoothPeripheralManager = BluetoothPeripheralManager(coreDataManager: coreDataManager, cgmTransmitterDelegate: self, uIViewController: self, heartBeatFunction: {
+        let heartBeatFunction = {
             self.loopFollowManager?.getReading()
             self.nightscoutFollowManager?.download()
             self.libreLinkUpFollowManager?.download()
             self.dexcomShareFollowManager?.download()
             self.medtrumEasyViewFollowManager?.download()
-        }, cgmTransmitterInfoChanged: cgmTransmitterInfoChanged)
+        }
+        
+        // setup bluetoothPeripheralManager (reuse app-level instance when available)
+        if let existingBluetoothPeripheralManager = existingBluetoothPeripheralManager {
+            bluetoothPeripheralManager = existingBluetoothPeripheralManager
+            existingBluetoothPeripheralManager.updateRuntimeBindings(
+                cgmTransmitterDelegate: self,
+                uIViewController: self,
+                heartBeatFunction: heartBeatFunction,
+                cgmTransmitterInfoChanged: cgmTransmitterInfoChanged
+            )
+        } else {
+            bluetoothPeripheralManager = BluetoothPeripheralManager(
+                coreDataManager: coreDataManager,
+                cgmTransmitterDelegate: self,
+                uIViewController: self,
+                heartBeatFunction: heartBeatFunction,
+                cgmTransmitterInfoChanged: cgmTransmitterInfoChanged
+            )
+        }
         
         // to initialize UserDefaults.standard.transmitterTypeAsString
         cgmTransmitterInfoChanged()

@@ -4,6 +4,10 @@ import CoreBluetooth
 /// defines functions that every cgm transmitter should conform to
 protocol CGMTransmitter: AnyObject {
     
+    /// Allows app-level bootstrap code to hand over CGM event delivery when UI delegates are ready.
+    /// Default implementation is a no-op for transmitter types that do not keep a CGM delegate reference.
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?)
+    
     /// to set nonFixedSlopeEnabled - called when user changes the setting
     ///
     /// for transmitters who don't support non fixed slopes, there's no need to implemented this function<br>
@@ -262,6 +266,9 @@ enum CGMTransmitterType:String, CaseIterable {
 }
 
 extension CGMTransmitter {
+    
+    // default implementation, no-op
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {}
     
     // empty implementation for transmitter types that don't need this
     func setNonFixedSlopeEnabled(enabled: Bool) {}

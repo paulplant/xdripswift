@@ -113,6 +113,10 @@ class CGMG6FireflyTransmitter:BluetoothTransmitter, CGMTransmitter {
         
     }
     
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {
+        cgmTransmitterDelegate = delegate
+    }
+    
     // MARK: - BluetoothTransmitter overriden functions
     
     override func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {

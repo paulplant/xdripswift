@@ -82,8 +82,7 @@ extension BluetoothPeripheralManager: BluetoothTransmitterDelegate {
             if Date() > maxTimeUserCanOpenApp {
                 trace("in cgmTransmitterNeedsPairing, user opened the app too late", log: self.log, category: ConstantsLog.categoryRootView, type: .error)
                 let alert = UIAlertController(title: Texts_Common.warning, message: Texts_HomeView.transmitterPairingTooLate, actionHandler: nil)
-                
-                self.uIViewController.present(alert, animated: true, completion: nil)
+                self.presentAlertIfPossible(alert)
                 
                 return
             }
@@ -110,8 +109,7 @@ extension BluetoothPeripheralManager: BluetoothTransmitterDelegate {
         
         // inform user
         let alert = UIAlertController(title: Texts_HomeView.info, message: Texts_HomeView.transmitterPairingSuccessful, actionHandler: nil)
-        
-        uIViewController.present(alert, animated: true, completion: nil)
+        presentAlertIfPossible(alert)
         
     }
 
@@ -328,8 +326,7 @@ extension BluetoothPeripheralManager: BluetoothTransmitterDelegate {
     @objc private func informUserThatPairingTimedOut() {
         
         let alert = UIAlertController(title: Texts_Common.warning, message: "time out", actionHandler: nil)
-        
-        uIViewController.present(alert, animated: true, completion: nil)
+        presentAlertIfPossible(alert)
         
     }
 
@@ -343,4 +340,3 @@ extension BluetoothPeripheralManager: BluetoothTransmitterDelegate {
     }
 
 }
-

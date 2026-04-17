@@ -322,6 +322,10 @@ class CGMMiaoMiaoTransmitter: BluetoothTransmitter, CGMTransmitter {
     
     // MARK: CGMTransmitter protocol functions
     
+    func updateCGMTransmitterDelegate(_ delegate: CGMTransmitterDelegate?) {
+        cgmTransmitterDelegate = delegate
+    }
+    
     /// this transmitter supports oopWeb
     func setWebOOPEnabled(enabled: Bool) {
         webOOPEnabled = enabled
@@ -1034,6 +1038,5 @@ class CGMMiaoMiaoTransmitter: BluetoothTransmitter, CGMTransmitter {
         libreSensorType = nil
     }
 }
-
 
 
