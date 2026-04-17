@@ -113,6 +113,10 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     /// Names of devices we should avoid reconnecting to for a short period after a recent disconnect
     private var temporarilyRejectedDeviceNames: [String: Date] = [:]
     private let temporaryRejectionCooldownSeconds: TimeInterval = 180
+
+    /// De-dup restoration handling for peripherals when iOS replays restoration callbacks.
+    private var lastRestoreHandlingAt: [UUID: Date] = [:]
+    private let restoreHandlingDeduplicationWindowSeconds: TimeInterval = 2
     
     /// set the connection options
     private var connectOptions: [String: Any] {
@@ -135,6 +139,108 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     /// Returns true if the device name looks like a Dexcom G7/ONE+ (DX**)
     private func isDexcomG7StyleName(_ name: String) -> Bool {
         return name.uppercased().hasPrefix("DX")
+    }
+
+    /// Preferred scan services for reliability, especially in background.
+    /// Priority:
+    /// 1. explicit advertisement UUID when available
+    /// 2. configured service UUIDs
+    /// 3. nil (foreground-only fallback handled separately)
+    private func preferredScanServices() -> [CBUUID]? {
+        if let advertisementUUID = CBUUID_Advertisement, !advertisementUUID.isEmpty {
+            return [CBUUID(string: advertisementUUID)]
+        }
+
+        if let servicesCBUUIDs = servicesCBUUIDs, !servicesCBUUIDs.isEmpty {
+            return servicesCBUUIDs
+        }
+
+        return nil
+    }
+
+    /// If no service UUIDs are available, unfiltered scans are only allowed while app is foregrounded.
+    /// We use app state directly as the source of truth and keep appInForeGround as a secondary hint.
+    private func canUseForegroundOnlyUnfilteredScan() -> Bool {
+        let applicationState = UIApplication.shared.applicationState
+        if applicationState == .active || applicationState == .inactive {
+            return true
+        }
+        return UserDefaults.standard.appInForeGround
+    }
+
+    /// Returns true when a restored peripheral is eligible for this transmitter instance.
+    private func restoredPeripheralMatchesCurrentPolicy(_ restoredPeripheral: CBPeripheral) -> Bool {
+        if let knownAddress = deviceAddress {
+            return restoredPeripheral.identifier.uuidString == knownAddress
+        }
+
+        if let expectedName = expectedName, let restoredName = restoredPeripheral.name {
+            return restoredName.range(of: expectedName, options: .caseInsensitive) != nil
+        }
+
+        // No known address/name constraint yet, so allow adoption.
+        return true
+    }
+
+    /// Higher value means more useful restored state.
+    private func restoredPeripheralPriority(_ restoredPeripheral: CBPeripheral) -> Int {
+        switch restoredPeripheral.state {
+        case .connected:
+            return 3
+        case .connecting:
+            return 2
+        case .disconnected, .disconnecting:
+            return 1
+        @unknown default:
+            return 0
+        }
+    }
+
+    /// Prevent duplicate restoration work if iOS calls willRestoreState repeatedly in a short window.
+    private func shouldSkipDuplicateRestoreHandling(for peripheralIdentifier: UUID) -> Bool {
+        let now = Date()
+        if let lastHandledAt = lastRestoreHandlingAt[peripheralIdentifier], now.timeIntervalSince(lastHandledAt) < restoreHandlingDeduplicationWindowSeconds {
+            return true
+        }
+        lastRestoreHandlingAt[peripheralIdentifier] = now
+        return false
+    }
+
+    /// Rebind runtime state to a selected restored peripheral.
+    private func rebindToRestoredPeripheral(_ restoredPeripheral: CBPeripheral) {
+        peripheral = restoredPeripheral
+        deviceAddress = restoredPeripheral.identifier.uuidString
+        if let restoredName = restoredPeripheral.name {
+            deviceName = restoredName
+        }
+        restoredPeripheral.delegate = self
+
+        // Characteristic instances are tied to the current service discovery context.
+        // Reset and rediscover to avoid stale references after process restoration.
+        writeCharacteristic = nil
+        receiveCharacteristic = nil
+    }
+
+    /// Resume link behavior for a restored peripheral based on its current state.
+    private func recoverRestoredPeripheralState(_ restoredPeripheral: CBPeripheral, central: CBCentralManager) {
+        switch restoredPeripheral.state {
+        case .connected:
+            trace("in willRestoreState, restored peripheral %{public}@ is connected; rediscovering services", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoredPeripheral.name ?? "'unknown'")
+            restoredPeripheral.discoverServices(servicesCBUUIDs)
+        case .connecting:
+            trace("in willRestoreState, restored peripheral %{public}@ is connecting; waiting for didConnect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoredPeripheral.name ?? "'unknown'")
+        case .disconnected, .disconnecting:
+            if shouldReconnectOnNextDisconnect {
+                trace("in willRestoreState, restored peripheral %{public}@ is not connected; reconnecting", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoredPeripheral.name ?? "'unknown'")
+                central.connect(restoredPeripheral, options: connectOptions)
+            } else {
+                trace("in willRestoreState, reconnect disabled for restored peripheral %{public}@; starting scan", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoredPeripheral.name ?? "'unknown'")
+                _ = startScanning()
+            }
+        @unknown default:
+            trace("in willRestoreState, restored peripheral %{public}@ in unknown state %{public}@; attempting reconnect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .error, restoredPeripheral.name ?? "'unknown'", restoredPeripheral.state.description())
+            central.connect(restoredPeripheral, options: connectOptions)
+        }
     }
     
     // MARK: - Initialization
@@ -295,11 +401,8 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 }
             }
             
-            /// list of uuid's to scan for, possibly nil, in which case scanning only if app is in foreground and scan for all devices
-            var services:[CBUUID]?
-            if let CBUUID_Advertisement = CBUUID_Advertisement {
-                services = [CBUUID(string: CBUUID_Advertisement)]
-            }
+            /// Preferred scan services. If nil, we only allow unfiltered scanning in foreground.
+            let services = preferredScanServices()
             
             // try to start the scanning
             if let centralManager = centralManager {
@@ -311,8 +414,19 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 case .poweredOn:
                     
                     trace("in startScanning, state is poweredOn", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
-                    centralManager.scanForPeripherals(withServices: services, options: nil)
-                    returnValue = .success
+                    if let services = services {
+                        let filterText = services.map({ $0.uuidString }).joined(separator: ",")
+                        trace("in startScanning, scanning with service filter(s): %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, filterText)
+                        centralManager.scanForPeripherals(withServices: services, options: nil)
+                        returnValue = .success
+                    } else if canUseForegroundOnlyUnfilteredScan() {
+                        trace("in startScanning, no service UUID available; using foreground-only unfiltered scan", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+                        centralManager.scanForPeripherals(withServices: nil, options: nil)
+                        returnValue = .success
+                    } else {
+                        trace("in startScanning, no service UUID available and app is not foreground; refusing unfiltered background scan", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .error)
+                        return .other(reason:"No service UUID available for background-safe scan")
+                    }
                     
                 case .poweredOff:
                     
@@ -782,31 +896,56 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String : Any]) {
         trace("in willRestoreState", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
-        
-        // Attempt to reuse the restored peripheral (if any) without forcing a rescan.
-        if let restoredPeripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral], let restoredPeripheral = restoredPeripherals.first {
-            
-            // Re-attach references and delegates
-            self.peripheral = restoredPeripheral
-            self.deviceAddress = restoredPeripheral.identifier.uuidString
-            self.deviceName = restoredPeripheral.name
-            restoredPeripheral.delegate = self
-            
-            trace("didUpdateValueFor, restored peripheral %{public}@ (state = %{public}@)", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoredPeripheral.name ?? "'unknown'", restoredPeripheral.state.description())
-            
-            switch restoredPeripheral.state {
-            case .connected:
-                // On restore while connected, always rediscover services so subclasses can resubscribe ALL required characteristics (not just the cached receive one).
-                trace("didUpdateValueFor, connected, rediscovering services for full resubscribe", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
-                restoredPeripheral.discoverServices(self.servicesCBUUIDs)
-            case .connecting:
-                // Nothing to do. CoreBluetooth will finish the connection
-                break
-            default:
-                // Reconnect restored peripheral to resume subscriptions after OS restore
-                central.connect(restoredPeripheral, options: connectOptions)
+
+        guard let restoredPeripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral], !restoredPeripherals.isEmpty else {
+            trace("in willRestoreState, no restored peripherals", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+            return
+        }
+
+        trace("in willRestoreState, restored peripheral count = %{public}d", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoredPeripherals.count)
+
+        var selectedPeripheral: CBPeripheral?
+        var selectedPriority = Int.min
+
+        for restoredPeripheral in restoredPeripherals {
+            let restoredName = restoredPeripheral.name ?? "'unknown'"
+            let stateDescription = restoredPeripheral.state.description()
+            let matchesPolicy = restoredPeripheralMatchesCurrentPolicy(restoredPeripheral)
+            let isCurrentPeripheral = peripheral?.identifier == restoredPeripheral.identifier
+            let eligible = matchesPolicy || isCurrentPeripheral
+
+            trace(
+                "in willRestoreState, candidate peripheral %{public}@ (state=%{public}@, matchesPolicy=%{public}@, matchesCurrent=%{public}@)",
+                log: log,
+                category: ConstantsLog.categoryBlueToothTransmitter,
+                type: .info,
+                restoredName,
+                stateDescription,
+                matchesPolicy.description,
+                isCurrentPeripheral.description
+            )
+
+            guard eligible else { continue }
+
+            let priority = restoredPeripheralPriority(restoredPeripheral)
+            if selectedPeripheral == nil || priority > selectedPriority {
+                selectedPeripheral = restoredPeripheral
+                selectedPriority = priority
             }
         }
+
+        guard let selectedPeripheral = selectedPeripheral else {
+            trace("in willRestoreState, restored peripherals did not match transmitter policy, nothing to adopt", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+            return
+        }
+
+        if shouldSkipDuplicateRestoreHandling(for: selectedPeripheral.identifier) {
+            trace("in willRestoreState, duplicate callback for %{public}@ ignored", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .debug, selectedPeripheral.name ?? "'unknown'")
+            return
+        }
+
+        rebindToRestoredPeripheral(selectedPeripheral)
+        recoverRestoredPeripheralState(selectedPeripheral, central: central)
     }
     
     // MARK: - helpers

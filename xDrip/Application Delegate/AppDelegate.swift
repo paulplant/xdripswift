@@ -23,6 +23,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         trace("****************************************", log: log, category: ConstantsLog.categoryAppDelegate, type: .info)
         trace("*** in didFinishLaunchingWithOptions ***", log: log, category: ConstantsLog.categoryAppDelegate, type: .info)
         trace("****************************************", log: log, category: ConstantsLog.categoryAppDelegate, type: .info)
+
+        // Ensure app lifecycle observers are active even before UI controller setup.
+        _ = ApplicationManager.shared
+
+        // Keep appInForeGround aligned as early as possible (used by BLE scanning policy).
+        UserDefaults.standard.appInForeGround = application.applicationState != .background
+
+        if let restoredCentrals = launchOptions?[.bluetoothCentrals] as? [String], !restoredCentrals.isEmpty {
+            trace("in didFinishLaunchingWithOptions, launched for bluetooth central restoration (%{public}d central identifiers)", log: log, category: ConstantsLog.categoryAppDelegate, type: .info, restoredCentrals.count)
+        }
+        if let restoredPeripherals = launchOptions?[.bluetoothPeripherals] as? [String], !restoredPeripherals.isEmpty {
+            trace("in didFinishLaunchingWithOptions, launchOptions contained bluetooth peripherals (%{public}d identifiers)", log: log, category: ConstantsLog.categoryAppDelegate, type: .info, restoredPeripherals.count)
+        }
+
         return true
     }
 
@@ -84,4 +98,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 }
-
