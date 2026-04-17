@@ -13,6 +13,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     private enum DefaultsKey {
         static let lastKnownDeviceAddress = "bt.lastKnownDeviceAddress"
         static let lastKnownDeviceName    = "bt.lastKnownDeviceName"
+        static let restoreIdentifierPrefix = "bt.restoreIdentifier."
     }
     
     // MARK: - public properties
@@ -45,8 +46,8 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     // for trace,
     private let log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryBlueToothTransmitter)
     
-    /// central queue for all CoreBluetooth work (dedicated serial queue)
-    private let centralQueue = DispatchQueue(label: "bt.central", qos: .userInitiated)
+    /// central queue for all CoreBluetooth work (shared serial queue managed by factory)
+    private let centralQueue = BluetoothCentralManagerFactory.shared.centralQueue
 
     /// queue-specific flag so we can detect whether we're already running on centralQueue
     private let centralQueueSpecificKey = DispatchSpecificKey<Void>()
@@ -241,6 +242,37 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
             trace("in willRestoreState, restored peripheral %{public}@ in unknown state %{public}@; attempting reconnect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .error, restoredPeripheral.name ?? "'unknown'", restoredPeripheral.state.description())
             central.connect(restoredPeripheral, options: connectOptions)
         }
+    }
+    
+    /// Stable identifier for this transmitter topology used to persist a restore identifier while address is unknown.
+    private func restoreIdentifierContext() -> String {
+        let transmitterType = String(describing: type(of: self))
+        let advertisementToken = CBUUID_Advertisement ?? "none"
+        let servicesToken = (servicesCBUUIDs ?? []).map({ $0.uuidString }).sorted().joined(separator: ",")
+        let expectedNameToken = expectedName ?? "none"
+        return "\(transmitterType)|\(advertisementToken)|\(servicesToken)|\(CBUUID_ReceiveCharacteristic)|\(CBUUID_WriteCharacteristic)|\(expectedNameToken)"
+    }
+    
+    /// Returns a persisted restore identifier for not-yet-known peripheral addresses.
+    private func restoreIdentifierForUnknownAddress() -> String {
+        let contextData = Data(restoreIdentifierContext().utf8).base64EncodedString()
+        let cacheKey = DefaultsKey.restoreIdentifierPrefix + contextData
+        
+        if let existingRestoreIdentifier = UserDefaults.standard.string(forKey: cacheKey), !existingRestoreIdentifier.isEmpty {
+            return existingRestoreIdentifier
+        }
+        
+        let newRestoreIdentifier = ConstantsHomeView.applicationName + "-" + UUID().uuidString.lowercased()
+        UserDefaults.standard.setValue(newRestoreIdentifier, forKey: cacheKey)
+        return newRestoreIdentifier
+    }
+    
+    /// Returns a restore identifier appropriate for current knowledge of the target peripheral.
+    private func restoreIdentifierToUse() -> String {
+        if let deviceAddress = deviceAddress {
+            return ConstantsHomeView.applicationName + "-" + deviceAddress
+        }
+        return restoreIdentifierForUnknownAddress()
     }
     
     // MARK: - Initialization
@@ -969,44 +1001,18 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
             }
             return
         }
-        
-        // create centralManager with a CBCentralManagerOptionRestoreIdentifierKey. This to ensure that iOS relaunches the app whenever it's killed either due to a crash or due to lack of memory
-        // iOS will restart the app as soon as a bluetooth transmitter tries to connect (which is under normal circumtances immediately)
-        // the function willRestoreState (see below) is an empty function and that seems to be enough to make it work
-        // see https://developer.apple.com/library/archive/qa/qa1962/_index.html
-        //
-        // the value used for CBCentralManagerOptionRestoreIdentifierKey depends :
-        // - when scanning for a new device (or peripheral), use a random string. Disadvantage of using a random string is that willRestoreState doesn't get called when the app relaunches, because not the same value will be used (as it's a random string) - for this reason, we'll store this string in userdefaults (not shared, just local to this scope) and use when relaunching.
-        // - when scanning for (better : trying to connect to) a known device, the device's mac address is used. In that case, after restart, it will be the same value. In this case the function willRestoreState gets called
-        //
-        // additional notes :
-        // - the only reason why it's good to see willRestoreState starting, is because there's a trace statement in it. This allows to see in trace files if there was a restart after crash or being thrown out of memory
-        
-        /// restore identifier key to use
-        var cBCentralManagerOptionRestoreIdentifierKeyToUse: String?
+        let restoreIdentifier = restoreIdentifierToUse()
         
         if let deviceAddress = deviceAddress {
-            
-            trace("in initialize, creating centralManager for peripheral with address %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, deviceAddress)
-            
-            // if it's an existing device, then restore identifier key will contain the device address, which is unique worldwide
-            // the application name is also in the identifier key
-            cBCentralManagerOptionRestoreIdentifierKeyToUse = ConstantsHomeView.applicationName + "-" + deviceAddress
-            trace("in initialize, restoreID created (stable from address): %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, cBCentralManagerOptionRestoreIdentifierKeyToUse!)
-            
+            trace("in initialize, creating centralManager for known peripheral address %{public}@ with restoreID %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, deviceAddress, restoreIdentifier)
         } else {
-            trace("in initialize, creating centralManager for new peripheral", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
-            
-            // if it's a new device, then restore identifier key will contain random string. The application name is also in the identifier key
-            let randomPart = String((0..<24).map{ _ in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()!})
-            
-            cBCentralManagerOptionRestoreIdentifierKeyToUse = ConstantsHomeView.applicationName + "-" + randomPart
-            
-            trace("in initialize, restoreID created (random, no known address yet): %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, cBCentralManagerOptionRestoreIdentifierKeyToUse!)
+            trace("in initialize, creating centralManager for unknown peripheral with stable restoreID %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, restoreIdentifier)
         }
         
-        // Create central manager on dedicated bt.central queue so all delegate callbacks arrive off the main thread
-        centralManager = CBCentralManager(delegate: self, queue: centralQueue, options: [CBCentralManagerOptionShowPowerAlertKey: true, CBCentralManagerOptionRestoreIdentifierKey: cBCentralManagerOptionRestoreIdentifierKeyToUse!])
+        centralManager = BluetoothCentralManagerFactory.shared.makeCentralManager(
+            delegate: self,
+            restoreIdentifier: restoreIdentifier
+        )
     }
     
     // MARK: - enum's
@@ -1091,5 +1097,56 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         ///     * For an xDrip bridge, we don't expect a specific devicename, in which case the value stays nil
         case notYetConnected (expectedName:String?)
         
+    }
+}
+
+/// Shared central manager factory used as a safe migration step toward app-level BLE central ownership.
+/// Current behavior still creates one central per transmitter instance, but:
+/// 1. queue execution is centralized
+/// 2. central creation/logging is centralized
+/// 3. future single-central migration can be introduced behind this API
+private final class BluetoothCentralManagerFactory {
+    
+    static let shared = BluetoothCentralManagerFactory()
+    
+    let centralQueue = DispatchQueue(label: "bt.central.shared", qos: .userInitiated)
+    
+    private let trackingQueue = DispatchQueue(label: "bt.central.factory.tracking")
+    private let activeManagers = NSHashTable<AnyObject>.weakObjects()
+    private var creationsByRestoreIdentifier: [String: Int] = [:]
+    private let log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryBlueToothTransmitter)
+    
+    private init() {}
+    
+    func makeCentralManager(delegate: CBCentralManagerDelegate, restoreIdentifier: String) -> CBCentralManager {
+        let manager = CBCentralManager(
+            delegate: delegate,
+            queue: centralQueue,
+            options: [
+                CBCentralManagerOptionShowPowerAlertKey: true,
+                CBCentralManagerOptionRestoreIdentifierKey: restoreIdentifier
+            ]
+        )
+        
+        trackingQueue.sync {
+            activeManagers.add(manager)
+            creationsByRestoreIdentifier[restoreIdentifier, default: 0] += 1
+            let activeCount = activeManagers.allObjects.count
+            let createdForRestoreID = creationsByRestoreIdentifier[restoreIdentifier] ?? 0
+            let delegateType = String(describing: type(of: delegate))
+            
+            trace(
+                "in makeCentralManager, created central for delegate %{public}@ with restoreID %{public}@ (activeCentrals=%{public}d, createdForThisRestoreID=%{public}d)",
+                log: log,
+                category: ConstantsLog.categoryBlueToothTransmitter,
+                type: .info,
+                delegateType,
+                restoreIdentifier,
+                activeCount,
+                createdForRestoreID
+            )
+        }
+        
+        return manager
     }
 }
