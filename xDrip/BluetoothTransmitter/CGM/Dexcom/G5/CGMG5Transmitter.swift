@@ -1303,10 +1303,10 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
     
     /// process glucoseG6RxMessage
     ///
-    /// In coexistence (useOtherApp == true), behave like a "dumb" CGM client similar to LoopKit's passive mode:
+    /// In coexistence (useOtherApp == true), behave like a passive CGM client:
     /// - Parse the Dexcom G6 glucose frame.
-    /// - Immediately publish a single GlucoseData to the delegate.
-    /// - Do not wait for disconnect or backfill.
+    /// - Publish the reading immediately in the normal case.
+    /// - If the timestamp gap indicates a backfill window, defer the newest reading until flush time.
     ///
     /// In primary mode (useOtherApp == false), keep the existing G5/G6 Firefly flow behaviour and let
     /// processGlucoseG6DataRxMessageOrGlucoseDataRxMessage + sendGlucoseDataToDelegate() handle batching/backfill.
@@ -1334,11 +1334,21 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
             timeStamp: glucoseDataRxMessage.timeStamp
         )
 
-        // In coexistence with the official Dexcom app, act as a simple, passive listener:
-        // as soon as we get a valid G6 glucose frame, publish it directly to the delegate.
+        // In coexistence with the official Dexcom app, act as a passive listener:
+        // publish immediately for normal updates, but defer the newest reading when the
+        // timestamp gap indicates Dexcom is likely to send a backfill batch next.
         if useOtherApp {
             // Only send if status is .okay or .needsCalibration
             if glucoseDataRxMessage.algorithmStatus == .okay || glucoseDataRxMessage.algorithmStatus == .needsCalibration {
+                // Keep the resumed reading back if Dexcom is likely to deliver backfill next.
+                let shouldDeferForBackfill = timeStampOfLastG5Reading > Date(timeIntervalSince1970: 0)
+                    && glucoseDataRxMessage.timeStamp.timeIntervalSince(timeStampOfLastG5Reading) > ConstantsDexcomG5.minPeriodOfLatestReadingsToStartBackFill
+
+                if shouldDeferForBackfill {
+                    trace("in processGlucoseG6DataRxMessage, coexistence mode, deferring latest glucose reading until backfill batch is flushed", log: log, category: ConstantsLog.categoryCGMG5, type: .debug)
+                    return
+                }
+
                 guard let latestReading = lastGlucoseInSensorDataRxReading else {
                     // Should not normally happen, but if it does, fall back to a direct GlucoseData.
                     let fallback = GlucoseData(timeStamp: glucoseDataRxMessage.timeStamp, glucoseLevelRaw: glucoseDataRxMessage.calculatedValue)
@@ -1359,8 +1369,7 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
             } else {
                 trace("in processGlucoseG6DataRxMessage, not sending glucose value due to algorithm status: %{public}@", log: log, category: ConstantsLog.categoryCGMG5, type: .info, glucoseDataRxMessage.algorithmStatus.description)
             }
-            // In coexistence mode we do not rely on sendGlucoseDataToDelegate() or backfill
-            // to deliver readings, we are intentionally "dumb" and fire once per G6 frame.
+            // In coexistence mode the later flush still owns the final delivery order.
             return
         }
 
