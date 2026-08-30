@@ -162,3 +162,26 @@
 "scannedSensorLabelCode" = "Skannad etikettkod";
 "noCodeSensorSessionValue" = "0000 (Session utan kod)";
 "sensorCodeUnknown" = "Okänd";
+
+"sensorManagementCalibrationInProgress" = "Kalibrering pågår...";
+"sensorManagementCalibrationQueued" = "I kö";
+"sensorManagementCalibrationSent" = "Skickad, väntar på svar";
+"sensorManagementCalibrationSentShort" = "Skickad";
+"sensorManagementCalibrationCompletedShort" = "Slutförd";
+"sensorManagementCalibrationRejectedShort" = "Avvisad";
+"sensorManagementCalibrationErrorShort" = "Fel";
+"sensorManagementCalibrationProcessing" = "Bearbetar";
+"sensorManagementCalibrationCompletedHigh" = "Slutförd, hög säkerhet";
+"sensorManagementCalibrationCompletedLow" = "Slutförd, låg säkerhet";
+"sensorManagementCalibrationRejectedFormat" = "Avvisad: %@";
+"sensorManagementCalibrationNotPermitted" = "Kalibrering inte tillåten";
+"sensorManagementCalibrationNotPermittedNote" = "Sändaren tillåter för närvarande inte kalibrering.";
+"sensorManagementCalibrationRejectedRange" = "Värde utanför intervallet";
+"sensorManagementCalibrationRejectedTime" = "Ogiltig kalibreringstid";
+"sensorManagementCalibrationRejectedDuplicate" = "Redan angiven";
+"sensorManagementCalibrationRejectedBounds" = "Kontroll av gränser misslyckades";
+"sensorManagementCalibrationRejectedUnknown" = "Okänd orsak";
+"sensorManufactureDate" = "Tillverkningsdatum";
+"sensorExpirationDate" = "Utgångsdatum";
+"sensorManagementWaitingForSensorStart" = "Väntar på sensorstart";
+"sensorManagementStatusWarmingUp" = "Värmer upp";

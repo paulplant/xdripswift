@@ -285,8 +285,6 @@ extension UserDefaults {
         case activeSensorMaxSensorAgeInDays = "activeSensorMaxSensorAgeInDays"
         /// overriden active sensor max days (lifetime) - only used for G6 Anubis transmitters
         case activeSensorMaxSensorAgeInDaysOverridenAnubis = "activeSensorMaxSensorAgeInDaysOverridenAnubis"
-        /// should we force a 15 day sensor max days for G7 sensors?
-        case is15DayDexcomG7 = "is15DayDexcomG7"
 
 
         // Transmitter
@@ -548,6 +546,12 @@ extension UserDefaults {
         case storeFrequentReadingsInNightscout = "storeFrequentReadingsInNightscout"
         /// did user authorize the storage of "frequent" readings in healthkit or not (i.e. every 60 seconds instead of every 5 minutes)
         case storeFrequentReadingsInHealthKit = "storeFrequentReadingsInHealthKit"
+        /// should a pre-v28 G7 connection use the Dexcom app's authenticated connection?
+        case dexcomG7UseOtherApp = "dexcomG7UseOtherApp"
+        /// four-digit applicator code required for G7 primary authentication
+        case dexcomG7PairingCode = "dexcomG7PairingCode"
+        /// G7 primary authentication role, stored per transmitter
+        case dexcomG7BluetoothSlot = "dexcomG7BluetoothSlot"
         /// to create artificial delay in readings stored in sharedUserDefaults for loop. Minutes.
         /// Default value 0, if used then recommended value is multiple of 5 (eg 5 ot 10)
         case loopDelaySchedule = "loopDelaySchedule"
@@ -1848,18 +1852,6 @@ extension UserDefaults {
         }
     }
 
-    /// should we force a 15 day sensor max days for G7 sensors?
-    var is15DayDexcomG7: Bool {
-        // default value for bool in userdefaults is false, by default we want to assume a standard (usually 10-day) sensor life (false)
-        get {
-            return bool(forKey: Key.is15DayDexcomG7.rawValue)
-        }
-        set {
-            set(newValue, forKey: Key.is15DayDexcomG7.rawValue)
-        }
-    }
-
-
     // MARK: Housekeeper Settings
 
     /// For how many days data should be stored, normalized to a supported housekeeping block.
@@ -2963,6 +2955,41 @@ extension UserDefaults {
         set {
             set(newValue, forKey: Key.storeFrequentReadingsInHealthKit.rawValue)
         }
+    }
+
+    /// G7 defaults to the established coexistence path for existing and new installations.
+    @objc dynamic var dexcomG7UseOtherApp: Bool {
+        get {
+            return object(forKey: Key.dexcomG7UseOtherApp.rawValue) as? Bool ?? true
+        }
+        set {
+            set(newValue, forKey: Key.dexcomG7UseOtherApp.rawValue)
+        }
+    }
+
+    /// Returns the applicator code only for the sensor that supplied it.
+    func dexcomG7PairingCode(for transmitterID: String?) -> String? {
+        guard let transmitterID, !transmitterID.isEmpty,
+              let value = string(forKey: "\(Key.dexcomG7PairingCode.rawValue)-\(transmitterID)"),
+              value.count == 4,
+              value.allSatisfy(\.isNumber) else { return nil }
+        return value
+    }
+
+    func setDexcomG7PairingCode(_ pairingCode: String, for transmitterID: String?) {
+        guard let transmitterID, !transmitterID.isEmpty else { return }
+        set(pairingCode, forKey: "\(Key.dexcomG7PairingCode.rawValue)-\(transmitterID)")
+    }
+
+    func dexcomG7BluetoothSlot(for transmitterID: String?) -> DexcomG7BluetoothSlot {
+        guard let transmitterID, !transmitterID.isEmpty else { return .defaultSlot }
+        let rawValue = integer(forKey: "\(Key.dexcomG7BluetoothSlot.rawValue)-\(transmitterID)")
+        return DexcomG7BluetoothSlot(rawValue: UInt8(clamping: rawValue)) ?? .defaultSlot
+    }
+
+    func setDexcomG7BluetoothSlot(_ slot: DexcomG7BluetoothSlot, for transmitterID: String?) {
+        guard let transmitterID, !transmitterID.isEmpty else { return }
+        set(Int(slot.rawValue), forKey: "\(Key.dexcomG7BluetoothSlot.rawValue)-\(transmitterID)")
     }
 
 

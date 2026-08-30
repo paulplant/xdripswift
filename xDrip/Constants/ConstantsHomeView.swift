@@ -12,6 +12,24 @@ struct StatusSymbolPresentation: Equatable {
 }
 #endif
 
+/// Dexcom's role in the transmitter connection. The symbol is shared so every surface uses the
+/// same visual language, while each view remains responsible for deciding whether to show it.
+enum DexcomConnectionMode: String, Codable, Hashable {
+    case primary
+    case coexistence
+
+    init(useOtherApp: Bool) {
+        self = useOtherApp ? .coexistence : .primary
+    }
+
+    var systemImage: String {
+        switch self {
+        case .primary: return "p.square.fill"
+        case .coexistence: return "c.square.fill"
+        }
+    }
+}
+
 enum AIDStatusCondition: String, Codable, Hashable {
     case active
     case checking

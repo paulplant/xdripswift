@@ -73,10 +73,28 @@ struct BluetoothPeripheralsNavigationView: View {
         case let .types(category):
             BluetoothPeripheralTypeSelectionView(category: category, viewModel: viewModel, router: router)
 
-        case let .peripheral(bluetoothPeripheral, bluetoothPeripheralType):
+        case let .dexcomConnectionMode(type):
+            DexcomConnectionModeSelectionView(type: type, router: router)
+
+        case let .sensorCodeCapture(capture):
+            SensorStartCodeView(
+                configuration: capture.configuration,
+                initialCode: capture.initialCode,
+                initialLabel: capture.initialLabel,
+                onCancel: router.closeCurrentView,
+                onSubmit: { code, label in
+                    capture.onSubmit(code, label)
+                    if capture.dismissAfterSubmit {
+                        router.closeCurrentView()
+                    }
+                }
+            )
+
+        case let .peripheral(bluetoothPeripheral, bluetoothPeripheralType, dexcomConfiguration):
             BluetoothPeripheralDetailContainerView(
                 bluetoothPeripheral: bluetoothPeripheral,
                 bluetoothPeripheralType: bluetoothPeripheralType,
+                dexcomConfiguration: dexcomConfiguration,
                 coreDataManager: coreDataManager,
                 bluetoothPeripheralManager: bluetoothPeripheralManager,
                 sensorProvider: sensorProvider,
@@ -132,6 +150,7 @@ private struct BluetoothPeripheralDetailContainerView: View {
     init(
         bluetoothPeripheral: BluetoothPeripheral?,
         bluetoothPeripheralType: BluetoothPeripheralType,
+        dexcomConfiguration: DexcomAddConfiguration?,
         coreDataManager: CoreDataManager,
         bluetoothPeripheralManager: BluetoothPeripheralManaging,
         sensorProvider: ActiveSensorProviding?,
@@ -141,6 +160,7 @@ private struct BluetoothPeripheralDetailContainerView: View {
         _state = StateObject(wrappedValue: BluetoothPeripheralDetailState(
             bluetoothPeripheral: bluetoothPeripheral,
             expectedBluetoothPeripheralType: bluetoothPeripheralType,
+            dexcomConfiguration: dexcomConfiguration,
             coreDataManager: coreDataManager,
             bluetoothPeripheralManager: bluetoothPeripheralManager,
             sensorProvider: sensorProvider,
@@ -329,7 +349,12 @@ struct BluetoothPeripheralTypeSelectionView: View {
     }
 
     private func open(type bluetoothPeripheralType: BluetoothPeripheralType) {
-        router.openPeripheral(nil, type: bluetoothPeripheralType)
+        switch bluetoothPeripheralType {
+        case .DexcomType, .DexcomG7Type:
+            router.showDexcomConnectionMode(type: bluetoothPeripheralType)
+        default:
+            router.openPeripheral(nil, type: bluetoothPeripheralType)
+        }
     }
 
     @ViewBuilder private var footerView: some View {
@@ -360,6 +385,112 @@ struct BluetoothPeripheralTypeSelectionView: View {
     }
 }
 
+/// Shared first step for native Dexcom setup. The selected role is carried into the very first
+/// authentication attempt instead of being changed only after a device has connected.
+private struct DexcomConnectionModeSelectionView: View {
+    let type: BluetoothPeripheralType
+    @ObservedObject var router: BluetoothPeripheralsRouter
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                modeButton(
+                    mode: .primary,
+                    title: Texts_BluetoothPeripheralView.primaryModePickerOption,
+                    message: Texts_BluetoothPeripheralView.primaryModeAddFlowMessage
+                )
+                modeButton(
+                    mode: .coexistence,
+                    title: Texts_BluetoothPeripheralView.coexistenceModePickerOption,
+                    message: Texts_BluetoothPeripheralView.coexistenceModeAddFlowMessage
+                )
+
+                Text(type == .DexcomG7Type
+                    ? Texts_BluetoothPeripheralView.dexcomG7ModeSelectionFooter
+                    : Texts_BluetoothPeripheralView.dexcomG6ModeSelectionFooter)
+                    .font(.footnote)
+                    .foregroundStyle(ConstantsUI.listSectionFooterTextColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+            }
+            .padding(20)
+        }
+        .background(ConstantsUI.listBackGroundColor.ignoresSafeArea())
+        .navigationTitle(Texts_BluetoothPeripheralView.connectionMode)
+        .navigationBarTitleDisplayMode(.large)
+        .colorScheme(.dark)
+    }
+
+    private func modeButton(mode: DexcomConnectionMode, title: String, message: String) -> some View {
+        Button {
+            let configuration = DexcomAddConfiguration(useOtherApp: mode == .coexistence)
+            if type == .DexcomG7Type, mode == .primary {
+                captureDexcomG7SensorCode(configuration)
+            } else {
+                router.openPeripheral(nil, type: type, dexcomConfiguration: configuration)
+            }
+        } label: {
+            HStack(alignment: .top, spacing: 16) {
+                Image(systemName: mode.systemImage)
+                    .font(.system(size: 52, weight: .semibold))
+                    .foregroundStyle(ConstantsAppColors.toolbarAction)
+                    .frame(width: 56)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.title2.bold())
+                        .foregroundStyle(ConstantsAppColors.rowTitleText)
+                    Text(message)
+                        .font(.body)
+                        .foregroundStyle(ConstantsAppColors.rowDetailText)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func captureDexcomG7SensorCode(_ configuration: DexcomAddConfiguration) {
+        router.showSensorCodeCapture(DexcomSensorCodeCapture(
+            configuration: .g7,
+            initialCode: "",
+            initialLabel: nil,
+            dismissAfterSubmit: false,
+            onSubmit: { code, label in
+                guard code.count == 4 else { return }
+                continueToDexcomG7(configuration, label: label ?? DexcomG6SensorLabel(
+                    sensorCode: code,
+                    lotNumber: "",
+                    serialNumber: ""
+                ))
+            }
+        ))
+    }
+
+    private func continueToDexcomG7(_ configuration: DexcomAddConfiguration, label: DexcomG6SensorLabel?) {
+        var updatedConfiguration = configuration
+        updatedConfiguration.sensorLabel = label
+        router.finishDexcomG7Onboarding(updatedConfiguration)
+    }
+}
+
+extension SensorStartCodeView.Configuration {
+    static let g7 = SensorStartCodeView.Configuration(
+        title: Texts_BluetoothPeripheralView.sensorCode,
+        message: Texts_BluetoothPeripheralView.dexcomG7PairingCodeMessage,
+        codeSectionTitle: Texts_BluetoothPeripheralView.sensorCode,
+        placeholder: "----",
+        allowsEmptyCode: false,
+        scanner: .g7,
+        showsCancelButton: false,
+        noLabelFoundMessage: Texts_BluetoothPeripheralView.dexcomG7NoSensorLabelFound,
+        invalidLabelMessage: Texts_BluetoothPeripheralView.dexcomG7InvalidSensorLabelFound
+    )
+}
+
 // MARK: - Rows
 
 /// Configured peripheral title, connection state and disclosure presentation.
@@ -380,11 +511,18 @@ private struct BluetoothPeripheralListRowView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
-                Text(row.typeTitle)
-                    .font(.footnote)
-                    .foregroundStyle(ConstantsAppColors.rowDetailText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                HStack(spacing: 4) {
+                    if let mode = row.dexcomConnectionMode {
+                        Image(systemName: mode.systemImage)
+                            .accessibilityLabel(dexcomModeAccessibilityLabel(mode))
+                    }
+
+                    Text(row.typeTitle)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .font(.footnote)
+                .foregroundStyle(ConstantsAppColors.rowDetailText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -402,6 +540,12 @@ private struct BluetoothPeripheralListRowView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+    }
+
+    private func dexcomModeAccessibilityLabel(_ mode: DexcomConnectionMode) -> String {
+        mode == .coexistence
+            ? Texts_BluetoothPeripheralView.runningInCoexistenceMode
+            : Texts_BluetoothPeripheralView.runningInPrimaryMode
     }
 }
 

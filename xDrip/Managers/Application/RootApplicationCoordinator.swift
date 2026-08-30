@@ -2671,6 +2671,16 @@ extension RootApplicationCoordinator: @preconcurrency CGMTransmitterDelegate {
         createNotification(title: Texts_Common.warning, body: Texts_HomeView.sensorNotDetected, identifier: ConstantsNotifications.NotificationIdentifierForSensorNotDetected.sensorNotDetected, sound: nil)
     }
     
+    /// Enforces the configured warm-up boundary independently of the value carried in a packet.
+    /// A G7 can expose positive internal glucose estimates before warm-up completes; those values
+    /// are not displayable readings and must not reach storage, alerts, widgets, Watch, or AID.
+    static func shouldSuppressReadingDuringWarmup(
+        sensorAgeInSeconds: TimeInterval,
+        minimumWarmUpRequiredInMinutes: Double
+    ) -> Bool {
+        sensorAgeInSeconds < minimumWarmUpRequiredInMinutes * 60
+    }
+
     func cgmTransmitterInfoReceived(glucoseData: inout [GlucoseData], transmitterBatteryInfo: TransmitterBatteryInfo?, sensorAge: TimeInterval?) {
         trace("in cgmTransmitterInfoReceived, transmitterBatteryInfo %{public}@", log: log, category: ConstantsLog.categoryRootView, type: .debug, transmitterBatteryInfo?.description ?? "not received")
         trace("in cgmTransmitterInfoReceived, sensor time in days %{public}@", log: log, category: ConstantsLog.categoryRootView, type: .debug, sensorAge?.days.round(toDecimalPlaces: 1).description ?? "not received")
@@ -2697,9 +2707,11 @@ extension RootApplicationCoordinator: @preconcurrency CGMTransmitterDelegate {
             let cgmTransmitterType = bluetoothPeripheralManager?.getCGMTransmitter()?.cgmTransmitterType()
             let minimumWarmUpRequiredInMinutes = cgmTransmitterType == .dexcomG7 ? ConstantsMaster.minimumSensorWarmUpRequiredInMinutesDexcomG7 : ConstantsMaster.minimumSensorWarmUpRequiredInMinutes
             let secondsUntilWarmUpComplete = (minimumWarmUpRequiredInMinutes * 60) - sensorAgeInSeconds
-            let isDexcomG7WithReceivedGlucose = cgmTransmitterType == .dexcomG7 && glucoseData.contains { $0.glucoseLevelRaw > 0 }
-            
-            if secondsUntilWarmUpComplete > 0 && !isDexcomG7WithReceivedGlucose {
+
+            if Self.shouldSuppressReadingDuringWarmup(
+                sensorAgeInSeconds: sensorAgeInSeconds,
+                minimumWarmUpRequiredInMinutes: minimumWarmUpRequiredInMinutes
+            ) {
                 supressReadingIfSensorIsWarmingUp = true
                 
                 let warmupMinutesRemaining = Int(secondsUntilWarmUpComplete / 60)

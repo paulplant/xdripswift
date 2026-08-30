@@ -113,35 +113,9 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     private var lastConnectLogName: String? = nil
     
     private var hasLoggedPersistThisRun = false
-    /// If set by a subclass, we will treat the *next* disconnect as a temporary rejection for this specific device name.
-    /// This is intended for transient pre-auth cases (e.g. G7/ONE+ "Encryption is insufficient").
-    private var pendingTemporaryRejectionDeviceName: String? = nil
-    
-    /// Names of devices we should avoid reconnecting to for a short period after a recent disconnect
-    private var temporarilyRejectedDeviceNames: [String: Date] = [:]
-    private let temporaryRejectionCooldownSeconds: TimeInterval = 180
-
     /// set the connection options
     private var connectOptions: [String: Any] {
         [CBConnectPeripheralOptionNotifyOnConnectionKey: true, CBConnectPeripheralOptionNotifyOnDisconnectionKey: true]
-    }
-    
-    /// Returns true if the given device name is currently under temporary rejection cooldown
-    private func isTemporarilyRejected(_ discoveredDeviceName: String) -> Bool {
-        if let lastRejection = temporarilyRejectedDeviceNames[discoveredDeviceName] {
-            return Date().timeIntervalSince(lastRejection) < temporaryRejectionCooldownSeconds
-        }
-        return false
-    }
-    
-    /// Records a device name as temporarily rejected from immediate reconnection attempts
-    private func markDeviceNameAsTemporarilyRejected(_ discoveredDeviceName: String) {
-        temporarilyRejectedDeviceNames[discoveredDeviceName] = Date()
-    }
-
-    /// Returns true if the device name looks like a Dexcom G7/ONE+ (DX**)
-    private func isDexcomG7StyleName(_ name: String) -> Bool {
-        return name.uppercased().hasPrefix("DX")
     }
     
     // MARK: - Initialization
@@ -241,6 +215,12 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     /// service-discovery progress or be abandoned. Generic transmitters keep legacy behavior.
     func shouldTimeoutStalledConnectionSetup() -> Bool {
         false
+    }
+
+    /// Subclasses can request duplicate advertisements when connection decisions depend on live
+    /// system state. Normal transmitters retain CoreBluetooth's default de-duplicated scanning.
+    func scanOptions() -> [String: Any]? {
+        nil
     }
 
     /// gets peripheral connection status, nil if peripheral not existing yet
@@ -355,7 +335,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 case .poweredOn:
                     
                     trace("in startScanning, state is poweredOn", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, troubleshooting: .detailed(.bluetooth(.scanning)))
-                    centralManager.scanForPeripherals(withServices: services, options: nil)
+                    centralManager.scanForPeripherals(withServices: services, options: scanOptions())
                     returnValue = .success
                     
                 case .poweredOff:
@@ -455,22 +435,17 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         self.expectedName = name
     }
 
-    /// Requests that the next disconnect be treated as a temporary rejection for the given device name.
-    /// Use this from subclasses only in specific transient pre-auth flows.
-    func scheduleTemporaryRejectionOnNextDisconnect(forDeviceName name: String) {
-        centralQueue.async { [weak self] in
-            self?.pendingTemporaryRejectionDeviceName = name
-        }
-    }
-
     /// Find a peripheral already connected to the iOS Bluetooth stack (possibly by another app),
     /// matching at least one of the given service UUIDs, and connect to it without scanning.
     ///
     /// Used to piggy-back on a third-party app's authenticated BLE session (e.g. Medtrum EasyPatch).
     /// iOS multiplexes a single ACL link between apps, so notifications fan out to us once subscribed.
     ///
+    /// - parameters:
+    ///     - serviceUUIDs: the services that must be exposed by the connected peripheral
+    ///     - allowFallback: when false, only the stored address or expected device name may be used
     /// - returns: true if a matching peripheral was found and connection was initiated.
-    func retrieveConnectedPeripheral(withServiceUUIDs serviceUUIDs: [CBUUID]) -> Bool {
+    func retrieveConnectedPeripheral(withServiceUUIDs serviceUUIDs: [CBUUID], allowFallback: Bool = true) -> Bool {
         return runOnCentralQueueSync {
             guard let central = centralManager else { return false }
             let peripherals = central.retrieveConnectedPeripherals(withServices: serviceUUIDs)
@@ -478,11 +453,20 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 trace("in retrieveConnectedPeripheral, no system-connected peripherals match given services", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
                 return false
             }
-            // Prefer one matching expectedName if set; otherwise take the first.
-            let candidate: CBPeripheral = peripherals.first(where: { p in
+            // Prefer the previously selected peripheral, then the expected name. New-device flows
+            // can disable the final fallback when several nearby devices expose the same service.
+            // This is important for Dexcom because the final characters in the entered transmitter
+            // ID identify the one Bluetooth name that is safe to adopt.
+            let knownCandidate: CBPeripheral? = peripherals.first(where: { $0.identifier.uuidString == deviceAddress })
+                ?? peripherals.first(where: { p in
                 guard let expected = expectedName, let n = p.name else { return false }
                 return n.range(of: expected, options: .caseInsensitive) != nil
-            }) ?? peripherals[0]
+                })
+
+            guard let candidate = knownCandidate ?? (allowFallback ? peripherals[0] : nil) else {
+                trace("in retrieveConnectedPeripheral, system-connected peripherals were found but none matched the stored address or expected name", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+                return false
+            }
             trace("in retrieveConnectedPeripheral, connecting to system-connected peripheral name=%{public}@ id=%{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, candidate.name ?? "<unnamed>", candidate.identifier.uuidString)
             stopScanAndconnect(to: candidate)
             return true
@@ -625,11 +609,6 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         // check if stored address not nil, in which case we already connected before and we expect a full match with the already known device name
         if let deviceAddress = deviceAddress {
             if peripheral.identifier.uuidString == deviceAddress {
-                // Skip recently rejected devices for a short cooldown period to avoid latching on the same stale DX transmitter repeatedly
-                if let discoveredName = peripheral.name, isDexcomG7StyleName(discoveredName), isTemporarilyRejected(discoveredName) {
-                    trace("in didDiscover, discovery skip: %{public}@ is within temporary rejection cooldown, keep scanning", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, discoveredName)
-                    return
-                }
                 trace("in didDiscover, stored address matches peripheral address, will try to connect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
                 stopScanAndconnect(to: peripheral)
             } else {
@@ -642,11 +621,6 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 // so it's a new device, we need to see if it matches the specifically expected device name
                 if (peripheral.name?.range(of: expectedName, options: .caseInsensitive)) != nil {
                     // peripheral.name is not nil and contains expectedName
-                    // Skip recently rejected devices for a short cooldown period to avoid latching on the same stale DX transmitter repeatedly
-                    if let discoveredName = peripheral.name, isDexcomG7StyleName(discoveredName), isTemporarilyRejected(discoveredName) {
-                        trace("in didDiscover, discovery skip: %{public}@ is within temporary rejection cooldown, keep scanning", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, discoveredName)
-                        return
-                    }
                     trace("in didDiscover, new peripheral has expected device name, will try to connect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
                     stopScanAndconnect(to: peripheral)
                 } else {
@@ -655,18 +629,14 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 }
             } else {
                 // we don't expect any specific device name, so let's connect
-                // Skip recently rejected devices for a short cooldown period to avoid latching on the same stale DX transmitter repeatedly
-                if let discoveredName = peripheral.name, isDexcomG7StyleName(discoveredName), isTemporarilyRejected(discoveredName) {
-                    trace("in didDiscover, discovery skip: %{public}@ is within temporary rejection cooldown, keep scanning", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, discoveredName)
-                    return
-                }
                 trace("in didDiscover, new peripheral, will try to connect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
                 stopScanAndconnect(to: peripheral)
             }
         }
     }
     
-    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+    /// Shared connection bookkeeping for subclasses with custom discovery flows.
+    func handleDidConnectCommon(_ peripheral: CBPeripheral) {
         
         cancelConnectionTimer()
         scheduleConnectionSetupTimeout()
@@ -739,8 +709,11 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
             }
         }
         
+    }
+
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        handleDidConnectCommon(peripheral)
         peripheral.discoverServices(servicesCBUUIDs)
-        
     }
     
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -805,24 +778,6 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         } else {
             // Clean disconnect (rare, but handle)
             trace("in didDisconnectPeripheral, didDisconnect peripheral with name %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, troubleshooting: .detailed(.bluetooth(.disconnected)), deviceName ?? "'unknown'")
-        }
-
-        // One-shot, subclass-requested temporary rejection (e.g., pre-auth transient on G7/ONE+)
-        if let requestedRejectionName = pendingTemporaryRejectionDeviceName {
-            markDeviceNameAsTemporarilyRejected(requestedRejectionName)
-            pendingTemporaryRejectionDeviceName = nil
-        }
-
-        // If this device name is under temporary rejection, do NOT auto-reconnect, resume scanning so we can discover other DX devices instead
-        if let currentName = deviceName, isTemporarilyRejected(currentName) {
-            trace("in didDisconnectPeripheral, skip auto-reconnect for %{public}@ (temporary rejection active), resuming scan", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info, currentName)
-            // Clear the peripheral reference so we do not request an OS-level reconnect to the same handle
-            self.peripheral = nil
-            self.deviceAddress = nil
-            // Always re-enable default policy for future disconnects
-            shouldReconnectOnNextDisconnect = true
-            _ = startScanning()
-            return
         }
 
         // Keep noisy reconnect intent at debug

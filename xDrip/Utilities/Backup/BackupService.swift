@@ -46,7 +46,6 @@ final class BackupService: @unchecked Sendable {
         UserDefaults.Key.activeSensorStartDate.rawValue,
         UserDefaults.Key.activeSensorMaxSensorAgeInDays.rawValue,
         UserDefaults.Key.activeSensorMaxSensorAgeInDaysOverridenAnubis.rawValue,
-        UserDefaults.Key.is15DayDexcomG7.rawValue,
         UserDefaults.Key.nightscoutSyncRequired.rawValue,
         UserDefaults.Key.nightscoutTreatmentsUpdateCounter.rawValue,
         UserDefaults.Key.nightscoutDeviceStatus.rawValue,

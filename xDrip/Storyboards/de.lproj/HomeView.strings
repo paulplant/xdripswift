@@ -252,3 +252,26 @@
 "scannedSensorLabelCode" = "Code des gescannten Etiketts";
 "noCodeSensorSessionValue" = "0000 (Sitzung ohne Code)";
 "sensorCodeUnknown" = "Unbekannt";
+
+"sensorManagementCalibrationInProgress" = "Kalibrierung läuft...";
+"sensorManagementCalibrationQueued" = "In Warteschlange";
+"sensorManagementCalibrationSent" = "Gesendet, Antwort ausstehend";
+"sensorManagementCalibrationSentShort" = "Gesendet";
+"sensorManagementCalibrationCompletedShort" = "Abgeschlossen";
+"sensorManagementCalibrationRejectedShort" = "Abgelehnt";
+"sensorManagementCalibrationErrorShort" = "Fehler";
+"sensorManagementCalibrationProcessing" = "Wird verarbeitet";
+"sensorManagementCalibrationCompletedHigh" = "Abgeschlossen, hohe Zuverlässigkeit";
+"sensorManagementCalibrationCompletedLow" = "Abgeschlossen, geringe Zuverlässigkeit";
+"sensorManagementCalibrationRejectedFormat" = "Abgelehnt: %@";
+"sensorManagementCalibrationNotPermitted" = "Kalibrierung nicht zulässig";
+"sensorManagementCalibrationNotPermittedNote" = "Der Transmitter erlaubt derzeit keine Kalibrierung.";
+"sensorManagementCalibrationRejectedRange" = "Wert außerhalb des Bereichs";
+"sensorManagementCalibrationRejectedTime" = "Ungültiger Kalibrierungszeitpunkt";
+"sensorManagementCalibrationRejectedDuplicate" = "Bereits eingegeben";
+"sensorManagementCalibrationRejectedBounds" = "Grenzwertprüfung fehlgeschlagen";
+"sensorManagementCalibrationRejectedUnknown" = "Unbekannter Grund";
+"sensorManufactureDate" = "Herstellungsdatum";
+"sensorExpirationDate" = "Verfallsdatum";
+"sensorManagementWaitingForSensorStart" = "Warten auf Sensorstart";
+"sensorManagementStatusWarmingUp" = "Aufwärmphase";

@@ -188,3 +188,26 @@
 "scannedSensorLabelCode" = "Code van gescand label";
 "noCodeSensorSessionValue" = "0000 (Sessie zonder code)";
 "sensorCodeUnknown" = "Onbekend";
+
+"sensorManagementCalibrationInProgress" = "Kalibratie bezig...";
+"sensorManagementCalibrationQueued" = "In wachtrij";
+"sensorManagementCalibrationSent" = "Verzonden, wacht op antwoord";
+"sensorManagementCalibrationSentShort" = "Verzonden";
+"sensorManagementCalibrationCompletedShort" = "Voltooid";
+"sensorManagementCalibrationRejectedShort" = "Afgewezen";
+"sensorManagementCalibrationErrorShort" = "Fout";
+"sensorManagementCalibrationProcessing" = "Wordt verwerkt";
+"sensorManagementCalibrationCompletedHigh" = "Voltooid, hoge betrouwbaarheid";
+"sensorManagementCalibrationCompletedLow" = "Voltooid, lage betrouwbaarheid";
+"sensorManagementCalibrationRejectedFormat" = "Afgewezen: %@";
+"sensorManagementCalibrationNotPermitted" = "Kalibratie niet toegestaan";
+"sensorManagementCalibrationNotPermittedNote" = "De zender staat kalibratie momenteel niet toe.";
+"sensorManagementCalibrationRejectedRange" = "Waarde buiten bereik";
+"sensorManagementCalibrationRejectedTime" = "Ongeldige kalibratietijd";
+"sensorManagementCalibrationRejectedDuplicate" = "Al ingevoerd";
+"sensorManagementCalibrationRejectedBounds" = "Controle van grenzen mislukt";
+"sensorManagementCalibrationRejectedUnknown" = "Onbekende reden";
+"sensorManufactureDate" = "Productiedatum";
+"sensorExpirationDate" = "Vervaldatum";
+"sensorManagementWaitingForSensorStart" = "Wachten op sensorstart";
+"sensorManagementStatusWarmingUp" = "Opwarmen";

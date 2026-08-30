@@ -149,3 +149,26 @@
 "scannedSensorLabelCode" = "Scannet mærkatkode";
 "noCodeSensorSessionValue" = "0000 (Session uden kode)";
 "sensorCodeUnknown" = "Ukendt";
+
+"sensorManagementCalibrationInProgress" = "Kalibrering i gang...";
+"sensorManagementCalibrationQueued" = "I kø";
+"sensorManagementCalibrationSent" = "Sendt, afventer svar";
+"sensorManagementCalibrationSentShort" = "Sendt";
+"sensorManagementCalibrationCompletedShort" = "Fuldført";
+"sensorManagementCalibrationRejectedShort" = "Afvist";
+"sensorManagementCalibrationErrorShort" = "Fejl";
+"sensorManagementCalibrationProcessing" = "Behandler";
+"sensorManagementCalibrationCompletedHigh" = "Fuldført, høj sikkerhed";
+"sensorManagementCalibrationCompletedLow" = "Fuldført, lav sikkerhed";
+"sensorManagementCalibrationRejectedFormat" = "Afvist: %@";
+"sensorManagementCalibrationNotPermitted" = "Kalibrering ikke tilladt";
+"sensorManagementCalibrationNotPermittedNote" = "Senderen tillader ikke kalibrering i øjeblikket.";
+"sensorManagementCalibrationRejectedRange" = "Værdi uden for interval";
+"sensorManagementCalibrationRejectedTime" = "Ugyldigt kalibreringstidspunkt";
+"sensorManagementCalibrationRejectedDuplicate" = "Allerede indtastet";
+"sensorManagementCalibrationRejectedBounds" = "Kontrol af grænser mislykkedes";
+"sensorManagementCalibrationRejectedUnknown" = "Ukendt årsag";
+"sensorManufactureDate" = "Fremstillingsdato";
+"sensorExpirationDate" = "Udløbsdato";
+"sensorManagementWaitingForSensorStart" = "Venter på sensorstart";
+"sensorManagementStatusWarmingUp" = "Varmer op";

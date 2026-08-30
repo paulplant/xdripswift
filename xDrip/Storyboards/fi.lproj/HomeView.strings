@@ -165,3 +165,26 @@
 "scannedSensorLabelCode" = "Skannatun etiketin koodi";
 "noCodeSensorSessionValue" = "0000 (Kooditon istunto)";
 "sensorCodeUnknown" = "Tuntematon";
+
+"sensorManagementCalibrationInProgress" = "Kalibrointi käynnissä...";
+"sensorManagementCalibrationQueued" = "Jonossa";
+"sensorManagementCalibrationSent" = "Lähetetty, odottaa vastausta";
+"sensorManagementCalibrationSentShort" = "Lähetetty";
+"sensorManagementCalibrationCompletedShort" = "Valmis";
+"sensorManagementCalibrationRejectedShort" = "Hylätty";
+"sensorManagementCalibrationErrorShort" = "Virhe";
+"sensorManagementCalibrationProcessing" = "Käsitellään";
+"sensorManagementCalibrationCompletedHigh" = "Valmis, korkea varmuus";
+"sensorManagementCalibrationCompletedLow" = "Valmis, matala varmuus";
+"sensorManagementCalibrationRejectedFormat" = "Hylätty: %@";
+"sensorManagementCalibrationNotPermitted" = "Kalibrointi ei ole sallittu";
+"sensorManagementCalibrationNotPermittedNote" = "Lähetin ei tällä hetkellä salli kalibrointia.";
+"sensorManagementCalibrationRejectedRange" = "Arvo alueen ulkopuolella";
+"sensorManagementCalibrationRejectedTime" = "Virheellinen kalibrointiaika";
+"sensorManagementCalibrationRejectedDuplicate" = "Jo syötetty";
+"sensorManagementCalibrationRejectedBounds" = "Rajojen tarkistus epäonnistui";
+"sensorManagementCalibrationRejectedUnknown" = "Tuntematon syy";
+"sensorManufactureDate" = "Valmistuspäivä";
+"sensorExpirationDate" = "Viimeinen käyttöpäivä";
+"sensorManagementWaitingForSensorStart" = "Odotetaan sensorin käynnistymistä";
+"sensorManagementStatusWarmingUp" = "Lämpenee";

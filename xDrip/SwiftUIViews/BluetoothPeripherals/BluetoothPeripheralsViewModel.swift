@@ -16,8 +16,29 @@ import Foundation
 final class BluetoothPeripheralsRouter: ObservableObject {
     @Published var path = [BluetoothPeripheralsRoute]()
 
-    func openPeripheral(_ bluetoothPeripheral: BluetoothPeripheral?, type: BluetoothPeripheralType) {
-        path.append(BluetoothPeripheralsRoute(.peripheral(bluetoothPeripheral, type)))
+    func openPeripheral(
+        _ bluetoothPeripheral: BluetoothPeripheral?,
+        type: BluetoothPeripheralType,
+        dexcomConfiguration: DexcomAddConfiguration? = nil
+    ) {
+        // A peripheral detail is the final destination of both normal device selection and the
+        // add-device flow. Category, type, connection mode, and sensor code screens are setup steps
+        // only and must not remain underneath it. Replacing the complete path here means the detail
+        // is created once in its final navigation position and its back button always returns
+        // directly to the Bluetooth peripherals list.
+        path = [BluetoothPeripheralsRoute(.peripheral(bluetoothPeripheral, type, dexcomConfiguration))]
+    }
+
+    func showDexcomConnectionMode(type: BluetoothPeripheralType) {
+        path.append(BluetoothPeripheralsRoute(.dexcomConnectionMode(type)))
+    }
+
+    func showSensorCodeCapture(_ capture: DexcomSensorCodeCapture) {
+        path.append(BluetoothPeripheralsRoute(.sensorCodeCapture(capture)))
+    }
+
+    func finishDexcomG7Onboarding(_ configuration: DexcomAddConfiguration) {
+        openPeripheral(nil, type: .DexcomG7Type, dexcomConfiguration: configuration)
     }
 
     func showAddPeripheralCategories() {
@@ -55,7 +76,9 @@ struct BluetoothPeripheralsRoute: Hashable {
     enum Destination {
         case categories
         case types(BluetoothPeripheralCategory)
-        case peripheral(BluetoothPeripheral?, BluetoothPeripheralType)
+        case dexcomConnectionMode(BluetoothPeripheralType)
+        case sensorCodeCapture(DexcomSensorCodeCapture)
+        case peripheral(BluetoothPeripheral?, BluetoothPeripheralType, DexcomAddConfiguration?)
         case textEntry(BluetoothPeripheralTextEntry)
         case selectionList(BluetoothPeripheralSelectionList)
         case readSuccess(TransmitterReadSuccessDisplay, BluetoothPeripheralType)
@@ -75,6 +98,21 @@ struct BluetoothPeripheralsRoute: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+}
+
+struct DexcomAddConfiguration {
+    let useOtherApp: Bool
+    var sensorLabel: DexcomG6SensorLabel?
+    var g6BluetoothSlot: DexcomG6BluetoothSlot = .defaultSlot
+    var g7BluetoothSlot: DexcomG7BluetoothSlot = .defaultSlot
+}
+
+struct DexcomSensorCodeCapture {
+    let configuration: SensorStartCodeView.Configuration
+    let initialCode: String
+    let initialLabel: DexcomG6SensorLabel?
+    let dismissAfterSubmit: Bool
+    let onSubmit: (String, DexcomG6SensorLabel?) -> Void
 }
 
 // MARK: - List State
@@ -340,7 +378,36 @@ struct BluetoothPeripheralListRow: Identifiable {
     }
 
     var typeTitle: String {
-        bluetoothPeripheral.bluetoothPeripheralType().bluetoothPeripheralDisplayTitle
+        // Resolve configured Dexcom rows from their own transmitter ID. The global active sensor
+        // can belong to another row and must not determine this device's product name.
+        if let dexcomG5 = bluetoothPeripheral as? DexcomG5 {
+            return DexcomProductNameResolver.title(
+                transmitterType: .dexcom,
+                transmitterID: dexcomG5.blePeripheral.transmitterId,
+                bluetoothName: dexcomG5.blePeripheral.name
+            ) ?? bluetoothPeripheral.bluetoothPeripheralType().bluetoothPeripheralDisplayTitle
+        }
+        if let dexcomG7 = bluetoothPeripheral as? DexcomG7 {
+            // Automatic G7 discovery stores `DX0000` in Core Data before the real Bluetooth name
+            // is known. Use the same resolver as the detail screen so the list does not fall back
+            // to Dexcom G7 when the connected device is actually ONE+ or Stelo.
+            return DexcomProductNameResolver.title(
+                transmitterType: .dexcomG7,
+                transmitterID: dexcomG7.blePeripheral.transmitterId,
+                bluetoothName: dexcomG7.blePeripheral.name
+            ) ?? bluetoothPeripheral.bluetoothPeripheralType().bluetoothPeripheralDisplayTitle
+        }
+        return bluetoothPeripheral.bluetoothPeripheralType().bluetoothPeripheralDisplayTitle
+    }
+
+    var dexcomConnectionMode: DexcomConnectionMode? {
+        if let dexcomG5 = bluetoothPeripheral as? DexcomG5 {
+            return DexcomConnectionMode(useOtherApp: dexcomG5.useOtherApp)
+        }
+        if let dexcomG7 = bluetoothPeripheral as? DexcomG7 {
+            return DexcomConnectionMode(useOtherApp: dexcomG7.useOtherApp)
+        }
+        return nil
     }
 
 }

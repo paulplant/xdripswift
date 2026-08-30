@@ -40,6 +40,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
 
     private var bluetoothPeripheral: BluetoothPeripheral?
     private let expectedBluetoothPeripheralType: BluetoothPeripheralType
+    private let dexcomAddConfiguration: DexcomAddConfiguration?
     private let coreDataManager: CoreDataManager
     private weak var bluetoothPeripheralManager: BluetoothPeripheralManaging?
     private weak var sensorProvider: ActiveSensorProviding?
@@ -57,6 +58,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
 
     private var transmitterIdTempValue: String?
     private var dexcomG6BluetoothSlot: DexcomG6BluetoothSlot
+    private var dexcomG7BluetoothSlot: DexcomG7BluetoothSlot
     private var isScanning = false
     private var nfcScanNeeded = false
     private var nfcScanSuccessful = false
@@ -81,6 +83,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
     init(
         bluetoothPeripheral: BluetoothPeripheral?,
         expectedBluetoothPeripheralType: BluetoothPeripheralType,
+        dexcomConfiguration: DexcomAddConfiguration? = nil,
         coreDataManager: CoreDataManager,
         bluetoothPeripheralManager: BluetoothPeripheralManaging,
         sensorProvider: ActiveSensorProviding?,
@@ -91,6 +94,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
     ) {
         self.bluetoothPeripheral = bluetoothPeripheral
         self.expectedBluetoothPeripheralType = expectedBluetoothPeripheralType
+        self.dexcomAddConfiguration = dexcomConfiguration
         self.coreDataManager = coreDataManager
         self.bluetoothPeripheralManager = bluetoothPeripheralManager
         self.sensorProvider = sensorProvider
@@ -101,7 +105,9 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         self.presentReadSuccessView = presentReadSuccessView
         self.transmitterIdTempValue = bluetoothPeripheral?.blePeripheral.transmitterId
         self.dexcomG6BluetoothSlot = (bluetoothPeripheral as? DexcomG5)?
-            .resolvedDexcomG6BluetoothSlot() ?? .defaultSlot
+            .resolvedDexcomG6BluetoothSlot() ?? dexcomConfiguration?.g6BluetoothSlot ?? .defaultSlot
+        self.dexcomG7BluetoothSlot = (bluetoothPeripheral as? DexcomG7)?
+            .resolvedDexcomG7BluetoothSlot() ?? dexcomConfiguration?.g7BluetoothSlot ?? .defaultSlot
 
         super.init()
 
@@ -120,6 +126,31 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
             return Texts_M5StackView.m5StackViewscreenTitle
         case .M5StickCType:
             return Texts_M5StackView.m5StickCViewscreenTitle
+        case .DexcomType, .DexcomG7Type:
+            return dexcomTitle
+        default:
+            return expectedBluetoothPeripheralType.bluetoothPeripheralDisplayTitle
+        }
+    }
+
+    /// Uses the saved identifier or discovered Bluetooth name to replace the family-wide setup
+    /// title with the real Dexcom product name once enough information is available.
+    var dexcomTitle: String {
+        switch expectedBluetoothPeripheralType {
+        case .DexcomType:
+            return DexcomProductNameResolver.title(
+                transmitterType: .dexcom,
+                transmitterID: bluetoothPeripheral?.blePeripheral.transmitterId,
+                bluetoothName: bluetoothPeripheral?.blePeripheral.name
+            ) ?? expectedBluetoothPeripheralType.bluetoothPeripheralDisplayTitle
+
+        case .DexcomG7Type:
+            return DexcomProductNameResolver.title(
+                transmitterType: .dexcomG7,
+                transmitterID: bluetoothPeripheral?.blePeripheral.transmitterId,
+                bluetoothName: bluetoothPeripheral?.blePeripheral.name
+            ) ?? expectedBluetoothPeripheralType.bluetoothPeripheralDisplayTitle
+
         default:
             return expectedBluetoothPeripheralType.bluetoothPeripheralDisplayTitle
         }
@@ -233,6 +264,11 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         guard bluetoothPeripheral != nil else {
             if let dexcomG6BluetoothSlotSection = makeDexcomG6BluetoothSlotSection() {
                 sections.append(dexcomG6BluetoothSlotSection)
+            }
+            if expectedBluetoothPeripheralType == .DexcomG7Type,
+               let dexcomAddConfiguration,
+               !dexcomAddConfiguration.useOtherApp {
+                sections.append(makeDexcomG7BluetoothSlotSection(dexcomG7: nil))
             }
             return sections
         }
@@ -599,8 +635,8 @@ private extension BluetoothPeripheralDetailState {
             return "⚠️ " + activationBlockedMessage
         }
 
-        if expectedBluetoothPeripheralType == .DexcomType, let dexcomG5 = bluetoothPeripheral as? DexcomG5 {
-            return dexcomG5.useOtherApp
+        if let useOtherApp = dexcomUseOtherAppForStatusFooter() {
+            return useOtherApp
                 ? Texts_BluetoothPeripheralView.runningInCoexistenceMode
                 : Texts_BluetoothPeripheralView.runningInPrimaryMode
         }
@@ -612,19 +648,30 @@ private extension BluetoothPeripheralDetailState {
     // is a fixed visual cue and should not be part of the localized string.
     func makeStatusFooterSystemImage(activationBlockedMessage: String?) -> String? {
         guard activationBlockedMessage == nil,
-              expectedBluetoothPeripheralType == .DexcomType,
-              let dexcomG5 = bluetoothPeripheral as? DexcomG5
-        else {
+              let useOtherApp = dexcomUseOtherAppForStatusFooter() else {
             return nil
         }
 
-        return dexcomG5ModeSystemImage(useOtherApp: dexcomG5.useOtherApp)
+        return dexcomModeSystemImage(useOtherApp: useOtherApp)
     }
 
-    // The Dexcom G5/G6/ONE mode symbol is a fixed UI marker.
+    func dexcomUseOtherAppForStatusFooter() -> Bool? {
+        switch expectedBluetoothPeripheralType {
+        case .DexcomType:
+            return (bluetoothPeripheral as? DexcomG5)?.useOtherApp
+                ?? dexcomAddConfiguration?.useOtherApp
+        case .DexcomG7Type:
+            return (bluetoothPeripheral as? DexcomG7)?.useOtherApp
+                ?? dexcomAddConfiguration?.useOtherApp
+        default:
+            return nil
+        }
+    }
+
+    // The Dexcom mode symbol is a fixed UI marker.
     // It should change with the switch state but not be localized.
-    func dexcomG5ModeSystemImage(useOtherApp: Bool) -> String {
-        useOtherApp ? "c.square.fill" : "p.square.fill"
+    func dexcomModeSystemImage(useOtherApp: Bool) -> String {
+        DexcomConnectionMode(useOtherApp: useOtherApp).systemImage
     }
 
     func connectionTimestampTitle() -> String {
@@ -669,14 +716,16 @@ private extension BluetoothPeripheralDetailState {
     }
 
     func batterySymbol(voltageB: Int32) -> BluetoothPeripheralDetailSymbol? {
-        guard voltageB > 0 else { return nil }
-
-        // Dexcom G5/G6 battery state is based on voltage B, not a percentage.
-        if voltageB < 270 {
+        // All direct Dexcom generations use the same Voltage B presentation for now. Keeping the
+        // boundary in `DexcomBatteryStatus` ensures the settings view and Activity Log agree.
+        switch DexcomBatteryStatus(voltageB: Int(voltageB)) {
+        case .unknown:
+            return nil
+        case .red:
             return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 0), color: Color(.systemRed))
-        } else if voltageB < 280 {
+        case .yellow:
             return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 25), color: Color(.systemYellow))
-        } else {
+        case .green:
             return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 100), color: .green)
         }
     }
@@ -1015,6 +1064,32 @@ private extension DexcomG6BluetoothSlot {
     }
 }
 
+private extension DexcomG7BluetoothSlot {
+    var title: String {
+        switch self {
+        case .mobileApp: return Texts_BluetoothPeripheralView.dexcomG7MobileAppSlot
+        case .medicalDevice: return Texts_BluetoothPeripheralView.dexcomG7MedicalDeviceSlot
+        case .smartWatch: return Texts_BluetoothPeripheralView.dexcomG7SmartWatchSlot
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .mobileApp: return Texts_BluetoothPeripheralView.dexcomG7MobileAppSlotShort
+        case .medicalDevice: return Texts_BluetoothPeripheralView.dexcomG7MedicalDeviceSlotShort
+        case .smartWatch: return Texts_BluetoothPeripheralView.dexcomG7SmartWatchSlotShort
+        }
+    }
+
+    var footer: String {
+        switch self {
+        case .mobileApp: return Texts_BluetoothPeripheralView.dexcomG7MobileAppSlotFooter
+        case .medicalDevice: return Texts_BluetoothPeripheralView.dexcomG7MedicalDeviceSlotFooter
+        case .smartWatch: return Texts_BluetoothPeripheralView.dexcomG7SmartWatchSlotFooter
+        }
+    }
+}
+
 // MARK: - Scanning and NFC
 
 private extension BluetoothPeripheralDetailState {
@@ -1061,10 +1136,15 @@ private extension BluetoothPeripheralDetailState {
             )
         }
 
+        var currentDexcomConfiguration = dexcomAddConfiguration
+        currentDexcomConfiguration?.g6BluetoothSlot = dexcomG6BluetoothSlot
+        currentDexcomConfiguration?.g7BluetoothSlot = dexcomG7BluetoothSlot
+
         bluetoothPeripheralManager.startScanningForNewDevice(
             type: type,
             transmitterId: transmitterIdTempValue,
             dexcomG6BluetoothSlot: dexcomG6BluetoothSlot,
+            dexcomConfiguration: currentDexcomConfiguration,
             bluetoothTransmitterDelegate: self,
             callBackForScanningResult: { [weak self] startScanningResult in
                 self?.handleScanningResult(startScanningResult: startScanningResult)
@@ -1086,6 +1166,17 @@ private extension BluetoothPeripheralDetailState {
 
         if let dexcomG5 = bluetoothPeripheral as? DexcomG5 {
             dexcomG5.setBluetoothSlot(dexcomG6BluetoothSlot)
+            if let dexcomAddConfiguration {
+                dexcomG5.useOtherApp = dexcomAddConfiguration.useOtherApp
+            }
+            coreDataManager.saveChanges()
+        }
+
+        if let dexcomG7 = bluetoothPeripheral as? DexcomG7, var dexcomAddConfiguration {
+            dexcomAddConfiguration.g7BluetoothSlot = dexcomG7BluetoothSlot
+            dexcomG7.useOtherApp = dexcomAddConfiguration.useOtherApp
+            dexcomG7.setBluetoothSlot(dexcomAddConfiguration.g7BluetoothSlot)
+            dexcomG7.apply(sensorLabel: dexcomAddConfiguration.sensorLabel)
             coreDataManager.saveChanges()
         }
 
@@ -1288,14 +1379,18 @@ private extension BluetoothPeripheralDetailState {
 
     func requestDexcomG6BluetoothSlot() {
         let isAnubis = (bluetoothPeripheral as? DexcomG5)?.isAnubis == true
-        let slots = DexcomG6BluetoothSlot.allCases.filter { slot in
-            slot != .anubisExperimental || isAnubis
-        }
+        let slots = DexcomG6BluetoothSlot.allCases
+            .filter { slot in
+                slot != .anubisExperimental || isAnubis
+            }
+            .sorted { $0.rawValue < $1.rawValue }
 
         presentSelectionListView(BluetoothPeripheralSelectionList(
             title: Texts_BluetoothPeripheralView.dexcomG6BluetoothSlot,
+            explanation: Texts_BluetoothPeripheralView.dexcomBluetoothChannelSelectionExplanation,
             data: slots.map(\.title),
             selectedRow: slots.firstIndex(of: dexcomG6BluetoothSlot),
+            emphasizesParenthesizedSuffix: true,
             actionHandler: { [weak self] index in
                 guard slots.indices.contains(index) else { return }
                 self?.selectDexcomG6BluetoothSlot(slots[index])
@@ -1346,6 +1441,59 @@ private extension BluetoothPeripheralDetailState {
 
         trace(
             "Dexcom Bluetooth channel was changed from '%{public}@' (0x%{public}@) to '%{public}@' (0x%{public}@)",
+            log: log,
+            category: ConstantsLog.categoryBluetoothPeripheralViewController,
+            type: .info,
+            troubleshooting: .standard(.configuration(.dexcomBluetoothChannelChanged(TroubleshootingDexcomBluetoothChannel(slot)))),
+            TroubleshootingDexcomBluetoothChannel(previousSlot).name,
+            String(format: "%02X", previousSlot.rawValue),
+            TroubleshootingDexcomBluetoothChannel(slot).name,
+            String(format: "%02X", slot.rawValue)
+        )
+
+        refresh()
+    }
+
+    func requestDexcomG7BluetoothSlot(dexcomG7: DexcomG7?) {
+        let slots = DexcomG7BluetoothSlot.allCases.sorted { $0.rawValue < $1.rawValue }
+        presentSelectionListView(BluetoothPeripheralSelectionList(
+            title: Texts_BluetoothPeripheralView.dexcomG7BluetoothSlot,
+            explanation: Texts_BluetoothPeripheralView.dexcomBluetoothChannelSelectionExplanation,
+            data: slots.map(\.title),
+            selectedRow: slots.firstIndex(of: dexcomG7BluetoothSlot),
+            emphasizesParenthesizedSuffix: true,
+            actionHandler: { [weak self] index in
+                guard slots.indices.contains(index) else { return }
+                self?.selectDexcomG7BluetoothSlot(slots[index], dexcomG7: dexcomG7)
+            }
+        ))
+    }
+
+    func selectDexcomG7BluetoothSlot(_ slot: DexcomG7BluetoothSlot, dexcomG7: DexcomG7?) {
+        guard slot != dexcomG7BluetoothSlot else { return }
+        setDexcomG7BluetoothSlot(slot, dexcomG7: dexcomG7)
+    }
+
+    func setDexcomG7BluetoothSlot(_ slot: DexcomG7BluetoothSlot, dexcomG7: DexcomG7?) {
+        let previousSlot = dexcomG7BluetoothSlot
+        guard slot != previousSlot else { return }
+
+        dexcomG7BluetoothSlot = slot
+        if let dexcomG7 {
+            dexcomG7.setBluetoothSlot(slot)
+            coreDataManager.saveChanges()
+        }
+
+        if let dexcomG7,
+           let transmitter = bluetoothPeripheralManager?.getBluetoothTransmitter(
+            for: dexcomG7,
+            createANewOneIfNecesssary: false
+        ) as? CGMG7Transmitter {
+            transmitter.transitionToBluetoothSlot(slot)
+        }
+
+        trace(
+            "Dexcom G7 Bluetooth channel was changed from '%{public}@' (0x%{public}@) to '%{public}@' (0x%{public}@)",
             log: log,
             category: ConstantsLog.categoryBluetoothPeripheralViewController,
             type: .info,
@@ -1728,9 +1876,27 @@ struct BluetoothPeripheralTextEntry: Identifiable {
 struct BluetoothPeripheralSelectionList: Identifiable {
     let id = UUID()
     let title: String
+    let explanation: String?
     let data: [String]
     let selectedRow: Int?
+    let emphasizesParenthesizedSuffix: Bool
     let actionHandler: (Int) -> Void
+
+    init(
+        title: String,
+        explanation: String? = nil,
+        data: [String],
+        selectedRow: Int?,
+        emphasizesParenthesizedSuffix: Bool = false,
+        actionHandler: @escaping (Int) -> Void
+    ) {
+        self.title = title
+        self.explanation = explanation
+        self.data = data
+        self.selectedRow = selectedRow
+        self.emphasizesParenthesizedSuffix = emphasizesParenthesizedSuffix
+        self.actionHandler = actionHandler
+    }
 }
 
 // MARK: - Dexcom G5/G6/ONE
@@ -1742,7 +1908,7 @@ private extension BluetoothPeripheralDetailState {
         var sections = [
             BluetoothPeripheralDetailSection(
                 id: "dexcom-g5",
-                title: "Dexcom",
+                title: dexcomTitle,
                 headerDetail: dexcomG5.isAnubis ? "Anubis" : nil,
                 headerSymbol: dexcomG5.isAnubis ? BluetoothPeripheralDetailSymbol(systemName: "checkmark.circle.fill", color: .green) : nil,
                 rows: makeDexcomG5CommonRows(dexcomG5: dexcomG5)
@@ -1756,15 +1922,15 @@ private extension BluetoothPeripheralDetailState {
         sections.append(BluetoothPeripheralDetailSection(
             id: "dexcom-g5-coexistence",
             title: nil,
-            footerLines: dexcomG5CoexistenceFooterLines(dexcomG5: dexcomG5),
-            rows: makeDexcomG5CoexistenceRows(dexcomG5: dexcomG5)
+            footerLines: dexcomG5ConnectionModeFooterLines(dexcomG5: dexcomG5),
+            rows: makeDexcomG5ConnectionModeRows(dexcomG5: dexcomG5)
         ))
 
-        sections.append(BluetoothPeripheralDetailSection(
+        sections.append(makeDexcomBatterySection(
             id: "dexcom-g5-battery",
-            title: Texts_BluetoothPeripheralView.battery,
-            headerSymbol: batterySymbol(voltageB: dexcomG5.voltageB),
-            rows: makeDexcomG5BatteryRows(dexcomG5: dexcomG5)
+            rowIDPrefix: "dexcom-g5",
+            voltageA: dexcomG5.voltageA,
+            voltageB: dexcomG5.voltageB
         ))
 
         if dexcomG5.isAnubis {
@@ -1783,7 +1949,9 @@ private extension BluetoothPeripheralDetailState {
               transmitterIdTempValue?.isFireFly() == true
         else { return nil }
 
-        let coexistenceModeIsEnabled = (bluetoothPeripheral as? DexcomG5)?.useOtherApp == true
+        let coexistenceModeIsEnabled = (bluetoothPeripheral as? DexcomG5)?.useOtherApp
+            ?? dexcomAddConfiguration?.useOtherApp
+            ?? false
 
         return BluetoothPeripheralDetailSection(
             id: "dexcom-g6-bluetooth-slot",
@@ -1861,54 +2029,56 @@ private extension BluetoothPeripheralDetailState {
         ]
     }
 
-    func makeDexcomG5CoexistenceRows(dexcomG5: DexcomG5) -> [BluetoothPeripheralDetailRow] {
+    func makeDexcomG5ConnectionModeRows(dexcomG5: DexcomG5) -> [BluetoothPeripheralDetailRow] {
         [
-            toggleRow(
+            row(
                 id: "dexcom-g5-use-other-app",
-                title: Texts_BluetoothPeripheralView.useOtherDexcomApp,
-                isOn: dexcomG5.useOtherApp,
-                detailSymbol: BluetoothPeripheralDetailSymbol(
-                    systemName: dexcomG5ModeSystemImage(useOtherApp: dexcomG5.useOtherApp),
-                    color: Color(.colorSecondary)
-                ),
-                setValue: { [weak self] isOn in
-                    self?.setDexcomG5UseOtherApp(isOn, dexcomG5: dexcomG5)
+                title: Texts_BluetoothPeripheralView.connectionMode,
+                detail: dexcomG5.useOtherApp
+                    ? Texts_BluetoothPeripheralView.coexistenceMode
+                    : Texts_BluetoothPeripheralView.primaryMode,
+                showsDisclosure: true,
+                action: { [weak self] in
+                    self?.requestDexcomG5ConnectionMode(dexcomG5: dexcomG5)
                 }
             )
         ]
     }
 
-    // Keep the two mode explanations separate so each line can carry its own mode symbol.
-    // The active mode is first because it explains the current switch state.
-    func dexcomG5CoexistenceFooterLines(dexcomG5: DexcomG5) -> [BluetoothPeripheralDetailFooterLine] {
-        let coexistenceLine = BluetoothPeripheralDetailFooterLine(
-            systemImage: dexcomG5ModeSystemImage(useOtherApp: true),
-            text: Texts_BluetoothPeripheralView.useOtherDexcomAppCoexistenceFooter,
-            isActive: dexcomG5.useOtherApp
-        )
-
-        let primaryLine = BluetoothPeripheralDetailFooterLine(
-            systemImage: dexcomG5ModeSystemImage(useOtherApp: false),
-            text: Texts_BluetoothPeripheralView.useOtherDexcomAppPrimaryFooter,
-            isActive: !dexcomG5.useOtherApp
-        )
-
-        return dexcomG5.useOtherApp
-            ? [coexistenceLine, primaryLine]
-            : [primaryLine, coexistenceLine]
+    func dexcomG5ConnectionModeFooterLines(dexcomG5: DexcomG5) -> [BluetoothPeripheralDetailFooterLine] {
+        [BluetoothPeripheralDetailFooterLine(
+            systemImage: dexcomModeSystemImage(useOtherApp: dexcomG5.useOtherApp),
+            text: dexcomG5.useOtherApp
+                ? Texts_BluetoothPeripheralView.dexcomG6CoexistenceModeFooter
+                : Texts_BluetoothPeripheralView.dexcomG6PrimaryModeFooter,
+            isActive: true
+        )]
     }
 
-    func makeDexcomG5BatteryRows(dexcomG5: DexcomG5) -> [BluetoothPeripheralDetailRow] {
+    /// Builds the identical voltage presentation for G5, G6, and G7-family records. Callers supply
+    /// stable row identifiers so this common builder does not alter the established G6 view state.
+    func makeDexcomBatterySection(id: String, rowIDPrefix: String, voltageA: Int32, voltageB: Int32) -> BluetoothPeripheralDetailSection {
+        BluetoothPeripheralDetailSection(
+            id: id,
+            title: Texts_BluetoothPeripheralView.battery,
+            headerSymbol: batterySymbol(voltageB: voltageB),
+            rows: makeDexcomBatteryRows(rowIDPrefix: rowIDPrefix, voltageA: voltageA, voltageB: voltageB)
+        )
+    }
+
+    /// Shows both raw Dexcom voltage channels. A zero value means that no valid battery packet has
+    /// been saved yet, which is different from a real zero-millivolt battery measurement.
+    func makeDexcomBatteryRows(rowIDPrefix: String, voltageA: Int32, voltageB: Int32) -> [BluetoothPeripheralDetailRow] {
         [
             row(
-                id: "dexcom-g5-voltage-a",
-                title: "Voltage A",
-                detail: dexcomG5.voltageA != 0 ? dexcomG5.voltageA.description + "0 mV" : "Waiting for data..."
+                id: "\(rowIDPrefix)-voltage-a",
+                title: Texts_BluetoothPeripheralView.voltageA,
+                detail: dexcomVoltageText(voltageA)
             ),
             row(
-                id: "dexcom-g5-voltage-b",
-                title: "Voltage B",
-                detail: dexcomG5VoltageBText(dexcomG5: dexcomG5)
+                id: "\(rowIDPrefix)-voltage-b",
+                title: Texts_BluetoothPeripheralView.voltageB,
+                detail: dexcomVoltageText(voltageB)
             )
         ]
     }
@@ -1964,10 +2134,12 @@ private extension BluetoothPeripheralDetailState {
         dexcomG5.transmitterStartDate?.addingTimeInterval(60 * 60 * 24 * (dexcomG5.isAnubis ? ConstantsMaster.transmitterExpiryDaysDexcomG6Anubis : ConstantsMaster.transmitterExpiryDaysDexcomG5G6))
     }
 
-    func dexcomG5VoltageBText(dexcomG5: DexcomG5) -> String {
-        guard dexcomG5.voltageB != 0 else { return "Waiting for data..." }
+    func dexcomVoltageText(_ voltage: Int32) -> String {
+        guard voltage != 0 else { return Texts_BluetoothPeripheralView.waitingForData }
 
-        return dexcomG5.voltageB.description + "0 mV"
+        // Dexcom stores these values in 10 mV units. Converting here keeps Core Data and the
+        // existing Nightscout battery representation unchanged while the UI states the real unit.
+        return DexcomBatteryStatus.millivolts(fromRawVoltage: Int(voltage)).description + " mV"
     }
 
     func dexcomG5OverrideSensorMaxDaysText() -> String {
@@ -2004,22 +2176,26 @@ private extension BluetoothPeripheralDetailState {
         showInfo(title: Texts_BluetoothPeripheralView.transmittterExpiryDate, message: "\n" + expiryDateString)
     }
 
-    func setDexcomG5UseOtherApp(_ isOn: Bool, dexcomG5: DexcomG5) {
+    func setDexcomG5UseOtherApp(_ useOtherApp: Bool, dexcomG5: DexcomG5) {
         let previousValue = dexcomG5.useOtherApp
-        guard isOn != previousValue else { return }
+        guard useOtherApp != previousValue else { return }
 
-        dexcomG5.useOtherApp = isOn
+        dexcomG5.useOtherApp = useOtherApp
+        coreDataManager.saveChanges()
 
         if let cGMG5Transmitter = bluetoothPeripheralManager?.getBluetoothTransmitter(for: dexcomG5, createANewOneIfNecesssary: false) as? CGMG5Transmitter {
-            cGMG5Transmitter.useOtherApp = isOn
-            pendingAlert = BluetoothPeripheralDetailAlert(
-                title: Texts_BluetoothPeripheralView.useOtherDexcomApp,
-                message: isOn ? Texts_BluetoothPeripheralView.useOtherDexcomAppMessageEnabled : Texts_BluetoothPeripheralView.useOtherDexcomAppMessageDisabled
-            )
+            cGMG5Transmitter.useOtherApp = useOtherApp
         }
 
+        pendingAlert = BluetoothPeripheralDetailAlert(
+            title: Texts_BluetoothPeripheralView.connectionMode,
+            message: useOtherApp
+                ? Texts_BluetoothPeripheralView.dexcomG6CoexistenceModeSelectionMessage
+                : Texts_BluetoothPeripheralView.dexcomG6PrimaryModeSelectionMessage
+        )
+
         let previousMode = TroubleshootingDexcomConnectionMode(useOtherApp: previousValue)
-        let mode = TroubleshootingDexcomConnectionMode(useOtherApp: isOn)
+        let mode = TroubleshootingDexcomConnectionMode(useOtherApp: useOtherApp)
         trace(
             "Dexcom connection mode was changed from '%{public}@' to '%{public}@'",
             log: log,
@@ -2031,6 +2207,25 @@ private extension BluetoothPeripheralDetailState {
         )
 
         refresh()
+    }
+
+    func requestDexcomG5ConnectionMode(dexcomG5: DexcomG5) {
+        let modes = [DexcomConnectionMode.primary, .coexistence]
+
+        presentSelectionListView(BluetoothPeripheralSelectionList(
+            title: Texts_BluetoothPeripheralView.connectionMode,
+            explanation: Texts_BluetoothPeripheralView.dexcomConnectionModeSelectionExplanation,
+            data: modes.map { mode in
+                mode == .primary
+                    ? Texts_BluetoothPeripheralView.primaryModePickerOption
+                    : Texts_BluetoothPeripheralView.coexistenceModePickerOption
+            },
+            selectedRow: modes.firstIndex(of: DexcomConnectionMode(useOtherApp: dexcomG5.useOtherApp)),
+            actionHandler: { [weak self] index in
+                guard modes.indices.contains(index) else { return }
+                self?.setDexcomG5UseOtherApp(modes[index] == .coexistence, dexcomG5: dexcomG5)
+            }
+        ))
     }
 
     func setDexcomG5ResetRequired(_ isOn: Bool, dexcomG5: DexcomG5) {
@@ -2084,42 +2279,116 @@ private extension BluetoothPeripheralDetailState {
     func makeDexcomG7Sections(bluetoothPeripheral: BluetoothPeripheral) -> [BluetoothPeripheralDetailSection] {
         guard let dexcomG7 = bluetoothPeripheral as? DexcomG7 else { return [] }
 
-        var rows = [
-            row(
-                id: "dexcom-g7-sensor-start-date",
-                title: Texts_BluetoothPeripheralView.sensorStartDate,
-                detail: dexcomG7.sensorStartDate?.toStringInUserLocale(timeStyle: .none, dateStyle: .short) ?? "",
-                detailLineLimit: 1
-            ),
-            row(
-                id: "dexcom-g7-sensor-status",
-                title: Texts_Common.sensorStatus,
-                detail: dexcomG7.sensorStatus,
-                // Only the active transmitter should show a health indicator.
-                // Stored inactive devices may have stale sensor status values.
-                detailIndicator: dexcomG7.blePeripheral.shouldconnect ? sensorStatusDetailIndicator(for: dexcomG7.sensorStatus) : nil,
-                detailLineLimit: 1
+        var sections = [
+            BluetoothPeripheralDetailSection(
+                id: "dexcom-g7",
+                title: dexcomTitle,
+                rows: makeDexcomG7CommonRows(dexcomG7: dexcomG7)
             )
         ]
 
-        if UserDefaults.standard.activeSensorTransmitterId?.starts(with: "DXCM") == true {
-            rows.append(toggleRow(
-                id: "dexcom-g7-is-15-day",
-                title: Texts_BluetoothPeripheralView.is15DayDexcomG7,
-                isOn: UserDefaults.standard.is15DayDexcomG7,
-                setValue: { isOn in
-                    UserDefaults.standard.is15DayDexcomG7 = isOn
-                }
+        // Battery diagnostics apply to both ownership modes. Place the shared section before the
+        // primary-only Bluetooth channel settings so the sensor information remains grouped.
+        sections.append(makeDexcomBatterySection(
+            id: "dexcom-g7-battery",
+            rowIDPrefix: "dexcom-g7",
+            voltageA: dexcomG7.voltageA,
+            voltageB: dexcomG7.voltageB
+        ))
+
+        if !dexcomG7.useOtherApp {
+            sections.append(makeDexcomG7BluetoothSlotSection(dexcomG7: dexcomG7))
+        }
+
+        return sections
+    }
+
+    /// G7 keeps the selected connection role for the life of this saved sensor. Primary mode shows
+    /// the scanned code used for authentication. Coexistence does not need or expose that code.
+    func makeDexcomG7CommonRows(dexcomG7: DexcomG7) -> [BluetoothPeripheralDetailRow] {
+        var rows = [row(
+            id: "dexcom-g7-sensor-start-date",
+            title: Texts_BluetoothPeripheralView.sensorStartDate,
+            detail: dexcomG7.sensorStartDate?.toStringInUserLocale(timeStyle: .none, dateStyle: .short) ?? "",
+            detailLineLimit: 1
+        )]
+
+        if !dexcomG7.useOtherApp {
+            rows.append(row(
+                id: "dexcom-g7-pairing-code",
+                title: Texts_BluetoothPeripheralView.sensorCode,
+                detail: dexcomG7.sensorCode ?? "-"
             ))
         }
 
-        return [
-            BluetoothPeripheralDetailSection(
-                id: "dexcom-g7",
-                title: "Dexcom G7 / ONE+ / Stelo",
-                rows: rows
-            )
-        ]
+        // Full firmware is requested over several post-glucose wakes. Nil details intentionally
+        // leave these rows empty until a complete `0x4A` response has been saved.
+        rows.append(row(
+            id: "dexcom-g7-firmware",
+            title: Texts_Common.firmware,
+            detail: dexcomG7.firmwareVersion
+        ))
+        rows.append(row(
+            id: "dexcom-g7-version-code",
+            title: Texts_BluetoothPeripheralView.versionCode,
+            detail: dexcomG7.firmwareVersionCode?.stringValue
+        ))
+
+        let reportedSensorStatus = dexcomG7.sensorStatus
+        let algorithmState = reportedSensorStatus.flatMap { status in
+            DexcomAlgorithmState.allCases.first { $0.description == status }
+        }
+        let isWaitingForAutomaticStart = dexcomG7.blePeripheral.shouldconnect
+            && sensorProvider?.activeSensor == nil
+            && (algorithmState == nil || algorithmState == .None || algorithmState == .SessionStopped)
+        let displayedSensorStatus = isWaitingForAutomaticStart
+            ? Texts_HomeView.sensorManagementWaitingForSensorStart
+            : algorithmState == .SensorWarmup
+                ? Texts_HomeView.sensorManagementStatusWarmingUp
+                : reportedSensorStatus
+
+        rows.append(row(
+            id: "dexcom-g7-sensor-status",
+            title: Texts_Common.sensorStatus,
+            detail: displayedSensorStatus,
+            // Only the active transmitter should show a health indicator.
+            // Stored inactive devices may have stale sensor status values.
+            // Before the first usable glucose, a newly inserted G7 can still report
+            // `SessionStopped`. This is an expected automatic-start interval rather than a sensor
+            // failure, so present it neutrally and do not attach a misleading detail alert.
+            detailIndicator: dexcomG7.blePeripheral.shouldconnect
+                ? isWaitingForAutomaticStart
+                    ? SettingsIndicator(color: Color(.systemGray))
+                    : sensorStatusDetailIndicator(for: reportedSensorStatus)
+                : nil,
+            detailLineLimit: 1,
+            showsDisclosure: !isWaitingForAutomaticStart && reportedSensorStatus != nil,
+            isEnabled: !isWaitingForAutomaticStart && reportedSensorStatus != nil,
+            action: { [weak self] in
+                self?.showInfo(title: Texts_Common.sensorStatus, message: reportedSensorStatus.map { "\n" + $0 })
+            }
+        ))
+
+        return rows
+    }
+
+    func makeDexcomG7BluetoothSlotSection(dexcomG7: DexcomG7?) -> BluetoothPeripheralDetailSection {
+        BluetoothPeripheralDetailSection(
+            id: "dexcom-g7-bluetooth-slot",
+            title: Texts_SettingsView.developerSettings,
+            footer: dexcomG7BluetoothSlot.footer,
+            rows: [
+                row(
+                    id: "dexcom-g7-bluetooth-slot-selection",
+                    title: Texts_BluetoothPeripheralView.dexcomG7BluetoothSlot,
+                    detail: dexcomG7BluetoothSlot.shortTitle,
+                    showsDisclosure: true,
+                    action: { [weak self] in
+                        self?.requestDexcomG7BluetoothSlot(dexcomG7: dexcomG7)
+                    }
+                )
+            ]
+        )
     }
 }
 
@@ -2305,18 +2574,6 @@ private extension BluetoothPeripheralType {
             return BluetoothPeripheralScanPreparationNotice(
                 title: Texts_BluetoothPeripheralView.libre2ScanNoticeTitle,
                 message: Texts_BluetoothPeripheralView.libre2ScanNoticeMessage
-            )
-
-        case .DexcomType:
-            return BluetoothPeripheralScanPreparationNotice(
-                title: Texts_BluetoothPeripheralView.dexcomG6ScanNoticeTitle,
-                message: Texts_BluetoothPeripheralView.dexcomG6ScanNoticeMessage
-            )
-
-        case .DexcomG7Type:
-            return BluetoothPeripheralScanPreparationNotice(
-                title: Texts_BluetoothPeripheralView.dexcomG7ScanNoticeTitle,
-                message: Texts_BluetoothPeripheralView.dexcomG7ScanNoticeMessage
             )
 
         case .MedtrumTouchCareNanoType:
@@ -2798,6 +3055,31 @@ extension BluetoothPeripheralDetailState: CGMG7TransmitterDelegate {
 
     func received(sensorStatus: String?, cGMG7Transmitter: CGMG7Transmitter) {
         (bluetoothPeripheralManager as? CGMG7TransmitterDelegate)?.received(sensorStatus: sensorStatus, cGMG7Transmitter: cGMG7Transmitter)
+        refreshOnMain()
+    }
+
+    func received(sensorSessionLength: TimeInterval, cGMG7Transmitter: CGMG7Transmitter) {
+        (bluetoothPeripheralManager as? CGMG7TransmitterDelegate)?.received(sensorSessionLength: sensorSessionLength, cGMG7Transmitter: cGMG7Transmitter)
+        refreshOnMain()
+    }
+
+    func received(version: DexcomG7VersionMessage, cGMG7Transmitter: CGMG7Transmitter) {
+        (bluetoothPeripheralManager as? CGMG7TransmitterDelegate)?.received(version: version, cGMG7Transmitter: cGMG7Transmitter)
+        refreshOnMain()
+    }
+
+    func received(
+        battery: DexcomG7BatteryStatusMessage,
+        readAt: Date,
+        isFirstReading: Bool,
+        cGMG7Transmitter: CGMG7Transmitter
+    ) {
+        (bluetoothPeripheralManager as? CGMG7TransmitterDelegate)?.received(
+            battery: battery,
+            readAt: readAt,
+            isFirstReading: isFirstReading,
+            cGMG7Transmitter: cGMG7Transmitter
+        )
         refreshOnMain()
     }
 }

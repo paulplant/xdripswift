@@ -369,6 +369,10 @@ enum Texts_HomeView {
         return NSLocalizedString("sensorManagementStatusWarmingUp", tableName: filename, bundle: Bundle.main, value: "Warming Up", comment: "sensor management status label")
     }()
 
+    static let sensorManagementWaitingForSensorStart:String = {
+        return NSLocalizedString("sensorManagementWaitingForSensorStart", tableName: filename, bundle: Bundle.main, value: "Waiting for Sensor Start", comment: "sensor management status shown while an automatic G7-family sensor session has not started yet")
+    }()
+
     static let sensorManagementStatusExpired:String = {
         return NSLocalizedString("sensorManagementStatusExpired", tableName: filename, bundle: Bundle.main, value: "Expired", comment: "sensor management status label")
     }()
@@ -447,6 +451,78 @@ enum Texts_HomeView {
 
     static let sensorManagementCalibrationPending: String = {
         return NSLocalizedString("sensorManagementCalibrationPending", tableName: filename, bundle: Bundle.main, value: "Pending...", comment: "calibration readiness detail before a valid fingerstick value is entered")
+    }()
+
+    static let sensorManagementCalibrationInProgress: String = {
+        NSLocalizedString("sensorManagementCalibrationInProgress", tableName: filename, bundle: Bundle.main, value: "Calibration In Progress...", comment: "disabled calibration button while the transmitter is processing a previous calibration")
+    }()
+
+    static let sensorManagementCalibrationQueued: String = {
+        NSLocalizedString("sensorManagementCalibrationQueued", tableName: filename, bundle: Bundle.main, value: "Queued", comment: "G7 calibration is waiting to be sent")
+    }()
+
+    static let sensorManagementCalibrationSent: String = {
+        NSLocalizedString("sensorManagementCalibrationSent", tableName: filename, bundle: Bundle.main, value: "Sent, awaiting response", comment: "G7 calibration command was written and is waiting for its response")
+    }()
+
+    static let sensorManagementCalibrationSentShort: String = {
+        NSLocalizedString("sensorManagementCalibrationSentShort", tableName: filename, bundle: Bundle.main, value: "Sent", comment: "short G7 calibration status after the command was sent")
+    }()
+
+    static let sensorManagementCalibrationProcessing: String = {
+        NSLocalizedString("sensorManagementCalibrationProcessing", tableName: filename, bundle: Bundle.main, value: "Processing", comment: "G7 transmitter is processing a calibration")
+    }()
+
+    static let sensorManagementCalibrationCompletedHigh: String = {
+        NSLocalizedString("sensorManagementCalibrationCompletedHigh", tableName: filename, bundle: Bundle.main, value: "Completed, high confidence", comment: "G7 transmitter completed calibration with high confidence")
+    }()
+
+    static let sensorManagementCalibrationCompletedLow: String = {
+        NSLocalizedString("sensorManagementCalibrationCompletedLow", tableName: filename, bundle: Bundle.main, value: "Completed, low confidence", comment: "G7 transmitter completed calibration with low confidence")
+    }()
+
+    static let sensorManagementCalibrationCompletedShort: String = {
+        NSLocalizedString("sensorManagementCalibrationCompletedShort", tableName: filename, bundle: Bundle.main, value: "Completed", comment: "short G7 completed calibration status")
+    }()
+
+    static let sensorManagementCalibrationRejectedFormat: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedFormat", tableName: filename, bundle: Bundle.main, value: "Rejected: %@", comment: "G7 transmitter calibration rejection with a readable reason")
+    }()
+
+    static let sensorManagementCalibrationRejectedShort: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedShort", tableName: filename, bundle: Bundle.main, value: "Rejected", comment: "short G7 rejected calibration status")
+    }()
+
+    static let sensorManagementCalibrationErrorShort: String = {
+        NSLocalizedString("sensorManagementCalibrationErrorShort", tableName: filename, bundle: Bundle.main, value: "Error", comment: "short G7 calibration error status")
+    }()
+
+    static let sensorManagementCalibrationNotPermitted: String = {
+        NSLocalizedString("sensorManagementCalibrationNotPermitted", tableName: filename, bundle: Bundle.main, value: "Calibration not permitted", comment: "G7 transmitter does not currently permit calibration")
+    }()
+
+    static let sensorManagementCalibrationNotPermittedNote: String = {
+        NSLocalizedString("sensorManagementCalibrationNotPermittedNote", tableName: filename, bundle: Bundle.main, value: "The transmitter does not currently permit calibration.", comment: "footer shown when G7 transmitter reports calibration is unavailable")
+    }()
+
+    static let sensorManagementCalibrationRejectedRange: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedRange", tableName: filename, bundle: Bundle.main, value: "Value outside range", comment: "G7 calibration rejection reason")
+    }()
+
+    static let sensorManagementCalibrationRejectedTime: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedTime", tableName: filename, bundle: Bundle.main, value: "Invalid calibration time", comment: "G7 calibration rejection reason")
+    }()
+
+    static let sensorManagementCalibrationRejectedDuplicate: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedDuplicate", tableName: filename, bundle: Bundle.main, value: "Already entered", comment: "G7 calibration rejection reason")
+    }()
+
+    static let sensorManagementCalibrationRejectedBounds: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedBounds", tableName: filename, bundle: Bundle.main, value: "Bounds check failed", comment: "G7 calibration rejection reason")
+    }()
+
+    static let sensorManagementCalibrationRejectedUnknown: String = {
+        NSLocalizedString("sensorManagementCalibrationRejectedUnknown", tableName: filename, bundle: Bundle.main, value: "Unknown reason", comment: "G7 calibration rejection reason")
     }()
 
     static let sensorManagementCalibrationStableTrend: String = {
@@ -717,6 +793,8 @@ enum Texts_HomeView {
     static let cameraUnavailableMessage = NSLocalizedString("cameraUnavailableMessage", tableName: filename, bundle: .main, value: "Enter the sensor code manually or choose a photo.", comment: "camera unavailable alert message")
     static let sensorInformationTitle = NSLocalizedString("sensorInformationTitle", tableName: filename, bundle: .main, value: "Sensor Information", comment: "section title for stored sensor-label information")
     static let sensorLotNumber = NSLocalizedString("sensorLotNumber", tableName: filename, bundle: .main, value: "Lot Number", comment: "Dexcom sensor lot number label")
+    static let sensorManufactureDate = NSLocalizedString("sensorManufactureDate", tableName: filename, bundle: .main, value: "Manufacture Date", comment: "Dexcom sensor manufacture date label")
+    static let sensorExpirationDate = NSLocalizedString("sensorExpirationDate", tableName: filename, bundle: .main, value: "Expiry Date", comment: "Dexcom sensor expiry date label")
     static let sensorSerialNumber = NSLocalizedString("sensorSerialNumberMetadata", tableName: filename, bundle: .main, value: "Sensor Serial Number", comment: "Dexcom sensor serial number label")
     static let sensorLabelReviewFooter = NSLocalizedString("sensorLabelReviewFooter", tableName: filename, bundle: .main, value: "Check the decoded information before starting the sensor.", comment: "footer below decoded sensor-label information")
     static let sensorLabelScanFailed = NSLocalizedString("sensorLabelScanFailed", tableName: filename, bundle: .main, value: "Sensor Label Not Read", comment: "sensor-label decoding alert title")

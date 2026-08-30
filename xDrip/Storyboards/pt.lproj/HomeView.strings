@@ -186,3 +186,26 @@
 "scannedSensorLabelCode" = "Código da etiqueta digitalizada";
 "noCodeSensorSessionValue" = "0000 (Sessão sem código)";
 "sensorCodeUnknown" = "Desconhecido";
+
+"sensorManagementCalibrationInProgress" = "Calibração em curso...";
+"sensorManagementCalibrationQueued" = "Em fila";
+"sensorManagementCalibrationSent" = "Enviada, a aguardar resposta";
+"sensorManagementCalibrationSentShort" = "Enviada";
+"sensorManagementCalibrationCompletedShort" = "Concluída";
+"sensorManagementCalibrationRejectedShort" = "Rejeitada";
+"sensorManagementCalibrationErrorShort" = "Erro";
+"sensorManagementCalibrationProcessing" = "A processar";
+"sensorManagementCalibrationCompletedHigh" = "Concluída, confiança alta";
+"sensorManagementCalibrationCompletedLow" = "Concluída, confiança baixa";
+"sensorManagementCalibrationRejectedFormat" = "Rejeitada: %@";
+"sensorManagementCalibrationNotPermitted" = "Calibração não permitida";
+"sensorManagementCalibrationNotPermittedNote" = "O transmissor não permite calibração neste momento.";
+"sensorManagementCalibrationRejectedRange" = "Valor fora do intervalo";
+"sensorManagementCalibrationRejectedTime" = "Hora de calibração inválida";
+"sensorManagementCalibrationRejectedDuplicate" = "Já introduzida";
+"sensorManagementCalibrationRejectedBounds" = "Falha na verificação dos limites";
+"sensorManagementCalibrationRejectedUnknown" = "Motivo desconhecido";
+"sensorManufactureDate" = "Data de fabrico";
+"sensorExpirationDate" = "Data de validade";
+"sensorManagementWaitingForSensorStart" = "A aguardar o início do sensor";
+"sensorManagementStatusWarmingUp" = "A aquecer";

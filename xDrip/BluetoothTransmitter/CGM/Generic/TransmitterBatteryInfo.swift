@@ -5,7 +5,9 @@ enum TransmitterBatteryInfo: Equatable {
     /// for transmitters to give battery in percentage
     case percentage (percentage:Int)
     
-    /// Dexcom G5 (and also G6 ?) voltageA, voltageB and resist
+    /// Dexcom G5, G6, and G7-family voltage, resistance, runtime, and temperature values.
+    /// The compatible wire representation lets every family use the established alert, Loop,
+    /// Nightscout, and active-transmitter battery path without inventing a second data model.
     case DexcomG5 (voltageA:Int, voltageB:Int, resist:Int, runtime:Int, temperature:Int)
     
     /// gives textual description of the battery level, example for percentage based, this is just the value followed by % sign

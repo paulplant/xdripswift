@@ -85,21 +85,42 @@ struct TroubleshootingLogView: View {
         _viewModel = StateObject(wrappedValue: TroubleshootingLogViewModel(
             store: store,
             appInfoProvider: {
-                // Read the current G5/G6 channel for each report snapshot. The effective accessor
-                // applies the default in memory without materializing it merely by opening this view.
-                let dexcomG5 = coreDataManager.flatMap { coreDataManager in
-                    BLEPeripheralAccessor(coreDataManager: coreDataManager)
+                // Read the complete active Dexcom context for each report snapshot. Both channel
+                // accessors apply their default in memory without materializing it merely by
+                // opening this view. G6 has no disposable sensor code, while G7-family sensors add
+                // the scanned code that was used for Primary authentication.
+                let dexcomContext = coreDataManager.flatMap { coreDataManager in
+                    let activePeripheral = BLEPeripheralAccessor(coreDataManager: coreDataManager)
                         .getBLEPeripherals()
-                        .first(where: { $0.shouldconnect && $0.dexcomG5 != nil })?
-                        .dexcomG5
+                        .first(where: { $0.shouldconnect && ($0.dexcomG5 != nil || $0.dexcomG7 != nil) })
+
+                    if let dexcomG5 = activePeripheral?.dexcomG5 {
+                        return TroubleshootingDexcomContext(
+                            useOtherApp: dexcomG5.useOtherApp,
+                            bluetoothChannel: TroubleshootingDexcomBluetoothChannel(
+                                dexcomG5.effectiveDexcomG6BluetoothSlot()
+                            ),
+                            sensorCode: nil,
+                            voltageA: Int(dexcomG5.voltageA),
+                            voltageB: Int(dexcomG5.voltageB)
+                        )
+                    }
+                    if let dexcomG7 = activePeripheral?.dexcomG7 {
+                        return TroubleshootingDexcomContext(
+                            useOtherApp: dexcomG7.useOtherApp,
+                            bluetoothChannel: TroubleshootingDexcomBluetoothChannel(
+                                dexcomG7.effectiveDexcomG7BluetoothSlot()
+                            ),
+                            sensorCode: dexcomG7.sensorCode,
+                            voltageA: Int(dexcomG7.voltageA),
+                            voltageB: Int(dexcomG7.voltageB)
+                        )
+                    }
+                    return nil
                 }
                 return .current(
                     currentSourceCanUseFiveMinuteReadings: bgPostProcessingManager?.currentSourceCanUseFiveMinuteReadings(),
-                    dexcomBluetoothChannel: dexcomG5.map {
-                        TroubleshootingDexcomBluetoothChannel(
-                            $0.effectiveDexcomG6BluetoothSlot()
-                        )
-                    }
+                    dexcomContext: dexcomContext
                 )
             }
         ))
@@ -339,7 +360,9 @@ struct TroubleshootingLogView: View {
         case .sensorNoise: return "waveform.path.ecg"
         case .sensorHealthAlert: return "exclamationmark.triangle.fill"
         case .transmitterReadSuccess: return "antenna.radiowaves.left.and.right"
-        case .calibrationAccepted: return "scope"
+        case let .dexcomBattery(_, status, _, _):
+            return dexcomBatterySystemName(status: status)
+        case .calibrationAccepted, .transmitterCalibration: return "scope"
         case let .alert(_, activity):
             return activity == .notificationsDenied || activity == .suppressedBySnooze || activity == .notificationDismissed || activity == .disabled ? "bell.slash.fill" : "bell.fill"
         case let .integration(.watch, activity):
@@ -399,6 +422,25 @@ struct TroubleshootingLogView: View {
         }
     }
 
+    /// Uses the same modern battery symbols as the device details view while retaining its existing
+    /// fallback names for iOS 16. This keeps older supported phones readable instead of requesting
+    /// an SF Symbol that did not exist on their system version.
+    private func dexcomBatterySystemName(status: DexcomBatteryStatus) -> String {
+        if #available(iOS 17.0, *) {
+            switch status {
+            case .unknown, .red: return "battery.0percent"
+            case .yellow: return "battery.25percent"
+            case .green: return "battery.100percent"
+            }
+        }
+
+        switch status {
+        case .unknown, .red: return "minus.plus.batteryblock.slash"
+        case .yellow: return "minus.plus.batteryblock"
+        case .green: return "minus.plus.batteryblock.fill"
+        }
+    }
+
     private func color(for entry: TroubleshootingLogEntry) -> Color {
         switch entry.kind {
         case let .bluetooth(activity) where [.connectionFailed, .connectionTimedOut, .poweredOff, .unauthorized, .pairingFailed].contains(activity):
@@ -421,6 +463,19 @@ struct TroubleshootingLogView: View {
             case .caution: return ConstantsAppColors.caution
             case .bad: return ConstantsAppColors.urgent
             case nil: return ConstantsAppColors.navigationTint
+            }
+        case let .transmitterCalibration(activity):
+            switch activity {
+            case .processing, .completedHigh: return ConstantsAppColors.normal
+            case .completedLow: return ConstantsAppColors.caution
+            case .rejected, .notPermitted: return ConstantsAppColors.urgent
+            }
+        case let .dexcomBattery(_, status, _, _):
+            switch status {
+            case .unknown: return ConstantsAppColors.navigationTint
+            case .green: return ConstantsAppColors.normal
+            case .yellow: return ConstantsAppColors.caution
+            case .red: return ConstantsAppColors.urgent
             }
         default:
             return ConstantsAppColors.navigationTint

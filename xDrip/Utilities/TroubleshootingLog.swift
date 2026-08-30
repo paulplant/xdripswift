@@ -313,8 +313,48 @@ enum TroubleshootingDexcomConnectionMode: String, Codable {
     }
 }
 
+/// Current Dexcom configuration added only to copied and shared Activity Log reports.
+///
+/// The values come from the active Core Data peripheral when the report is generated. Keeping them
+/// out of the persisted event stream avoids repeating unchanged configuration on every log row,
+/// while still ensuring that the shared report identifies the mode, channel, G7 applicator code
+/// and most recent Dexcom battery result that were active during troubleshooting.
+struct TroubleshootingDexcomContext: Equatable {
+    let connectionMode: TroubleshootingDexcomConnectionMode
+    let bluetoothChannel: TroubleshootingDexcomBluetoothChannel
+    let sensorCode: String?
+    let batteryDescription: String
+
+    init(
+        useOtherApp: Bool,
+        bluetoothChannel: TroubleshootingDexcomBluetoothChannel,
+        sensorCode: String?,
+        voltageA: Int,
+        voltageB: Int
+    ) {
+        connectionMode = TroubleshootingDexcomConnectionMode(useOtherApp: useOtherApp)
+        self.bluetoothChannel = bluetoothChannel
+        self.sensorCode = sensorCode
+
+        // G5, G6 and G7-family transmitters store both voltages in the same 10 mV unit. Reuse the
+        // common Voltage B classification and perform the conversion here so shared reports cannot
+        // accidentally present a raw value such as 267 as 267 mV.
+        let status = DexcomBatteryStatus(voltageB: voltageB)
+        if status == .unknown || voltageA <= 0 {
+            batteryDescription = "Waiting for data"
+        } else {
+            batteryDescription = status.rawValue.capitalized
+                + ", Voltage A "
+                + DexcomBatteryStatus.millivolts(fromRawVoltage: voltageA).description
+                + " mV, Voltage B "
+                + DexcomBatteryStatus.millivolts(fromRawVoltage: voltageB).description
+                + " mV"
+        }
+    }
+}
+
 enum TroubleshootingDexcomBluetoothChannel: String, Codable {
-    case mobileApp, receiverOrPump, anubisExperimental
+    case mobileApp, receiverOrPump, anubisExperimental, medicalDevice, smartWatch
 
     init(_ slot: DexcomG6BluetoothSlot) {
         switch slot {
@@ -324,11 +364,20 @@ enum TroubleshootingDexcomBluetoothChannel: String, Codable {
         }
     }
 
+    init(_ slot: DexcomG7BluetoothSlot) {
+        switch slot {
+        case .mobileApp: self = .mobileApp
+        case .medicalDevice: self = .receiverOrPump
+        case .smartWatch: self = .smartWatch
+        }
+    }
+
     var name: String {
         switch self {
-        case .mobileApp: return "Mobile App"
-        case .receiverOrPump: return "Receiver or Pump"
-        case .anubisExperimental: return "Slot 3 (Anubis Experimental)"
+        case .mobileApp: return "Slot 2: Mobile App (Default)"
+        case .receiverOrPump, .medicalDevice: return "Slot 1: Receiver or Pump"
+        case .anubisExperimental: return "Slot 3: Anubis Extra"
+        case .smartWatch: return "Slot 3: Smart Watch"
         }
     }
 }
@@ -764,11 +813,21 @@ enum TroubleshootingLogKind: Codable, Equatable {
     case sensorHealthAlert(TroubleshootingSensorHealthAlert)
     /// Hourly aggregate reception quality without transmitter identity or packet contents.
     case transmitterReadSuccess(percent: Int, missedReadings: Int, expectedReadings: Int, windowHours: Int)
+    /// A bounded G7-family battery result. Voltage B is already converted to mV and no sensor
+    /// identifier, packet data, or authentication information crosses the sharing boundary.
+    case dexcomBattery(
+        source: TroubleshootingLogSource,
+        status: DexcomBatteryStatus,
+        voltageBMillivolts: Int,
+        isFirstReading: Bool
+    )
     /// An accepted calibration value and the optional guidance snapshot shown at submission time.
     ///
     /// Readiness is optional so entries written by older builds and the legacy notification prompt
     /// continue to decode without fabricating conditions the user was never shown.
     case calibrationAccepted(mgDl: Double, readiness: TroubleshootingCalibrationReadiness?)
+    /// A controlled transmitter-side G7 calibration transition. No packet or device identifier is retained.
+    case transmitterCalibration(TroubleshootingTransmitterCalibrationActivity)
     /// The persisted alert enum value is safe and compact; user-authored notification text is not.
     case alert(kindRawValue: Int, activity: TroubleshootingAlertActivity)
     case integration(name: TroubleshootingIntegration, activity: TroubleshootingIntegrationActivity)
@@ -782,6 +841,58 @@ enum TroubleshootingLogKind: Codable, Equatable {
     case glucoseManagement(TroubleshootingGlucoseManagementActivity)
     /// A completed treatment change with no dose, note, account name or server identifier.
     case treatment(TroubleshootingTreatmentActivity)
+}
+
+enum TroubleshootingCalibrationRejectionReason: String, Codable, Equatable {
+    case unspecified
+    case outsideRange
+    case timestampInFuture
+    case duplicate
+    case earlierThanSessionStart
+    case notInOrder
+    case alreadyEntered
+    case disabled
+    case notPermitted
+    case calibrationBoundsFailed
+    case extremeOutlier
+    case stale
+    case unknown
+
+    var description: String {
+        switch self {
+        case .unspecified: return "unspecified reason"
+        case .outsideRange: return "value outside the permitted range"
+        case .timestampInFuture: return "timestamp in the future"
+        case .duplicate: return "duplicate calibration"
+        case .earlierThanSessionStart: return "timestamp before the sensor session"
+        case .notInOrder: return "calibration not in order"
+        case .alreadyEntered: return "calibration already entered"
+        case .disabled: return "calibration disabled"
+        case .notPermitted: return "calibration not permitted"
+        case .calibrationBoundsFailed: return "calibration bounds check failed"
+        case .extremeOutlier: return "extreme outlier"
+        case .stale: return "stale calibration"
+        case .unknown: return "unknown reason"
+        }
+    }
+}
+
+enum TroubleshootingTransmitterCalibrationActivity: Codable, Equatable {
+    case processing
+    case completedHigh
+    case completedLow
+    case rejected(TroubleshootingCalibrationRejectionReason)
+    case notPermitted
+
+    var traceDescription: String {
+        switch self {
+        case .processing: return "processing"
+        case .completedHigh: return "completed with high confidence"
+        case .completedLow: return "completed with low confidence"
+        case let .rejected(reason): return "rejected: \(reason.description)"
+        case .notPermitted: return "not permitted"
+        }
+    }
 }
 
 /// One immutable record in the consumer troubleshooting history.
@@ -863,6 +974,9 @@ final class TroubleshootingLogStore {
     static let maximumEntryCount = 5_000
     static let maximumFileSize = 1_024 * 1_024
     static let hourlyDiagnosticInterval: TimeInterval = 60 * 60
+    /// Healthy and caution battery values provide context without needing one row per two-hour
+    /// query. Red results deliberately bypass this interval in `signalFilteredEntries`.
+    static let dexcomBatteryDiagnosticInterval: TimeInterval = 12 * 60 * 60
 
     private let fileURL: URL
     private let retentionPeriod: TimeInterval
@@ -1098,6 +1212,8 @@ final class TroubleshootingLogStore {
         var lastSensorActivity: TroubleshootingSensorActivity?
         var lastSensorNoiseAt: Date?
         var lastTransmitterReadSuccessAt: Date?
+        var lastDexcomBatteryAt = [TroubleshootingLogSource: Date]()
+        var lastDexcomBatteryStatus = [TroubleshootingLogSource: DexcomBatteryStatus]()
         var lastAlertActivity = [Int: TroubleshootingAlertActivity]()
         var notificationPermissionProblemRecorded = false
         var result = [TroubleshootingLogEntry]()
@@ -1324,6 +1440,21 @@ final class TroubleshootingLogStore {
                 result.append(entry)
                 lastTransmitterReadSuccessAt = entry.timestamp
 
+            case let .dexcomBattery(source, status, _, isFirstReading):
+                // A red voltage is actionable evidence and must remain visible every time the
+                // two-hour battery query produces it. Healthy and caution values are periodic
+                // context, so retain them every 12 hours unless the state changed. Replaying the
+                // file enforces the same rule after an app restart without a second timestamp store.
+                let previousStatus = lastDexcomBatteryStatus[source]
+                let stateChanged = previousStatus != nil && previousStatus != status
+                let intervalElapsed = lastDexcomBatteryAt[source].map {
+                    entry.timestamp.timeIntervalSince($0) >= Self.dexcomBatteryDiagnosticInterval
+                } ?? true
+                guard isFirstReading || status == .red || stateChanged || intervalElapsed else { continue }
+                result.append(entry)
+                lastDexcomBatteryAt[source] = entry.timestamp
+                lastDexcomBatteryStatus[source] = status
+
             case let .alert(kindRawValue, activity):
                 switch activity {
                 case .notificationsDenied:
@@ -1459,8 +1590,8 @@ final class TroubleshootingLogStore {
                     result.append(entry)
                 }
 
-            case .calibrationAccepted:
-                // Each calibration is a discrete user action and must remain independently visible.
+            case .calibrationAccepted, .transmitterCalibration:
+                // Keep the user's submission and each deduplicated transmitter transition visible.
                 result.append(entry)
 
             case .heartbeatReceived, .configuration, .dataManagement, .glucoseManagement, .treatment:
@@ -1577,10 +1708,12 @@ final class TroubleshootingLogStore {
     }
 }
 
-/// A fresh, human-readable snapshot of non-secret app configuration placed above every report.
+/// A fresh, human-readable snapshot of app configuration placed above every shared report.
 ///
 /// This information is generated when the viewer reloads and is never written to the JSON-lines
-/// history. It intentionally omits the build number, account details, endpoint URLs and hardware IDs.
+/// history. It intentionally omits the build number, account details, endpoint URLs and hardware
+/// IDs. The active G7-family applicator code is included because the user explicitly chose to make
+/// it part of shared troubleshooting context alongside the current Dexcom battery information.
 struct TroubleshootingLogAppInfo: Equatable {
     /// Stable source-project identity used as the report title. `appName` remains separate because
     /// the installed target's bundle display name can intentionally use different branding and
@@ -1592,7 +1725,10 @@ struct TroubleshootingLogAppInfo: Equatable {
     let systemVersion: String
     let modeDescription: String
     let dataSourceDescription: String
+    let dexcomConnectionModeDescription: String?
     let dexcomBluetoothChannelDescription: String?
+    let dexcomSensorCode: String?
+    let dexcomBatteryDescription: String?
     let unitDescription: String
     let keepAliveDescription: String?
     let processingLines: [String]
@@ -1602,7 +1738,7 @@ struct TroubleshootingLogAppInfo: Equatable {
     static func current(
         defaults: UserDefaults = .standard,
         currentSourceCanUseFiveMinuteReadings: Bool? = nil,
-        dexcomBluetoothChannel: TroubleshootingDexcomBluetoothChannel? = nil
+        dexcomContext: TroubleshootingDexcomContext? = nil
     ) -> TroubleshootingLogAppInfo {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let deviceClass = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
@@ -1675,7 +1811,10 @@ struct TroubleshootingLogAppInfo: Equatable {
             systemVersion: UIDevice.current.systemVersion,
             modeDescription: modeDescription,
             dataSourceDescription: dataSourceDescription,
-            dexcomBluetoothChannelDescription: dexcomBluetoothChannel?.name,
+            dexcomConnectionModeDescription: dexcomContext?.connectionMode.name,
+            dexcomBluetoothChannelDescription: dexcomContext?.bluetoothChannel.name,
+            dexcomSensorCode: dexcomContext?.sensorCode,
+            dexcomBatteryDescription: dexcomContext?.batteryDescription,
             unitDescription: defaults.bloodGlucoseUnitIsMgDl ? "mg/dL" : "mmol/L",
             keepAliveDescription: keepAliveDescription,
             processingLines: [
@@ -1736,6 +1875,15 @@ struct TroubleshootingLogReportBuilder {
 
         if let dexcomBluetoothChannel = appInfo.dexcomBluetoothChannelDescription {
             lines.append("Dexcom Bluetooth channel: \(dexcomBluetoothChannel)")
+        }
+        if let dexcomConnectionMode = appInfo.dexcomConnectionModeDescription {
+            lines.append("Dexcom connection mode: \(dexcomConnectionMode)")
+        }
+        if let dexcomSensorCode = appInfo.dexcomSensorCode {
+            lines.append("Dexcom G7-family sensor code: \(dexcomSensorCode)")
+        }
+        if let dexcomBattery = appInfo.dexcomBatteryDescription {
+            lines.append("Dexcom battery: \(dexcomBattery)")
         }
         if let keepAlive = appInfo.keepAliveDescription {
             lines.append("Background keep-alive: \(keepAlive)")
@@ -1861,9 +2009,9 @@ struct TroubleshootingLogReportBuilder {
         case let .sensorLabelScan(activity):
             switch activity {
             case let .succeeded(source, sensorCode, lotNumber, serialNumber):
-                return "Dexcom G6 sensor label \(source.rawValue) scan succeeded: sensor code \(sensorCode), lot \(lotNumber), serial \(serialNumber)."
+                return "Dexcom sensor label \(source.rawValue) scan succeeded: sensor code \(sensorCode), lot \(lotNumber), serial \(serialNumber)."
             case let .failed(source, reason):
-                return "Dexcom G6 sensor label \(source.rawValue) scan failed: \(sensorLabelScanFailureText(reason))."
+                return "Dexcom sensor label \(source.rawValue) scan failed: \(sensorLabelScanFailureText(reason))."
             }
 
         case let .sensorNoise(shortTermMgDl, longTermMgDl, status):
@@ -1912,12 +2060,24 @@ struct TroubleshootingLogReportBuilder {
             }
             return "Transmitter read success: \(percent)% over \(window) (\(missedReadings) of \(expectedReadings) reading\(expectedReadings == 1 ? "" : "s") missed)."
 
+        case let .dexcomBattery(source, status, voltageBMillivolts, _):
+            return "\(source.name) battery status is \(status.rawValue). Voltage B is \(voltageBMillivolts) mV."
+
         case let .calibrationAccepted(mgDl, readiness):
             let accepted = "Calibration accepted: \(glucoseText(mgDl: mgDl))."
             guard let readiness else { return accepted }
             return accepted + " Guidance was \(readiness.overall.name) " +
                 "(calibration value \(readiness.calibrationValue.name), " +
                 "trend \(readiness.stableTrend.name), sensor noise \(readiness.sensorNoise.name))."
+
+        case let .transmitterCalibration(activity):
+            switch activity {
+            case .processing: return "The transmitter is processing the calibration."
+            case .completedHigh: return "The transmitter completed the calibration with high confidence."
+            case .completedLow: return "The transmitter completed the calibration with low confidence."
+            case let .rejected(reason): return "The transmitter rejected the calibration: \(reason.description)."
+            case .notPermitted: return "The transmitter reported that calibration is not permitted."
+            }
 
         case let .alert(kindRawValue, activity):
             let alertName = Self.alertName(rawValue: kindRawValue)

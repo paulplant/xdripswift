@@ -368,8 +368,8 @@ final class TroubleshootingLogTests: XCTestCase {
             ))
         ])
         XCTAssertEqual(entries.map(report.message(for:)), [
-            "Dexcom G6 sensor label photo scan failed: no valid sensor label found.",
-            "Dexcom G6 sensor label camera scan succeeded: sensor code 5937, lot 5336121, serial 821184A."
+            "Dexcom sensor label photo scan failed: no valid sensor label found.",
+            "Dexcom sensor label camera scan succeeded: sensor code 5937, lot 5336121, serial 821184A."
         ])
 
         let storedText = String(decoding: try Data(contentsOf: fixture.fileURL), as: UTF8.self)
@@ -1220,6 +1220,9 @@ final class TroubleshootingLogTests: XCTestCase {
         XCTAssertTrue(report.headerLines.contains("Version: 7.2.1"))
         XCTAssertTrue(report.headerLines.contains("Mode: Follower (Nightscout)"))
         XCTAssertTrue(report.headerLines.contains("Dexcom Bluetooth channel: Mobile App"))
+        XCTAssertTrue(report.headerLines.contains("Dexcom connection mode: Co-existence"))
+        XCTAssertTrue(report.headerLines.contains("Dexcom G7-family sensor code: 1234"))
+        XCTAssertTrue(report.headerLines.contains("Dexcom battery: Yellow, Voltage A 2880 mV, Voltage B 2750 mV"))
         XCTAssertFalse(report.headerLines.contains(where: { $0.hasPrefix("Data source:") }))
         XCTAssertTrue(report.headerLines.contains("Background keep-alive: Normal"))
         XCTAssertTrue(report.headerLines.contains("BG adjustment: None"))
@@ -1266,6 +1269,31 @@ final class TroubleshootingLogTests: XCTestCase {
             currentSourceCanUseFiveMinuteReadings: false
         )
         XCTAssertTrue(fiveMinuteNightscoutInfo.processingLines.contains("5-minute readings: n/a"))
+    }
+
+    func testDexcomHeaderContextConvertsBatteryValuesAndNamesConnectionMode() {
+        let context = TroubleshootingDexcomContext(
+            useOtherApp: false,
+            bluetoothChannel: .smartWatch,
+            sensorCode: "6772",
+            voltageA: 288,
+            voltageB: 267
+        )
+
+        XCTAssertEqual(context.connectionMode, .primary)
+        XCTAssertEqual(context.bluetoothChannel, .smartWatch)
+        XCTAssertEqual(context.sensorCode, "6772")
+        XCTAssertEqual(context.batteryDescription, "Red, Voltage A 2880 mV, Voltage B 2670 mV")
+
+        let waitingContext = TroubleshootingDexcomContext(
+            useOtherApp: true,
+            bluetoothChannel: .mobileApp,
+            sensorCode: nil,
+            voltageA: 0,
+            voltageB: 0
+        )
+        XCTAssertEqual(waitingContext.connectionMode, .coexistence)
+        XCTAssertEqual(waitingContext.batteryDescription, "Waiting for data")
     }
 
     func testReportUsesEnglishLocalDatesAndRequestedGlucoseUnit() {
@@ -1407,8 +1435,8 @@ final class TroubleshootingLogTests: XCTestCase {
             "The configured CGM was disconnected.",
             "Background keep-alive changed to Continuous.",
             "Dexcom connection mode changed to Co-existence.",
-            "Dexcom Bluetooth channel changed to Receiver or Pump.",
-            "Dexcom Bluetooth channel changed to Slot 3 (Anubis Experimental).",
+            "Dexcom Bluetooth channel changed to Slot 1: Receiver or Pump.",
+            "Dexcom Bluetooth channel changed to Slot 3: Anubis Extra.",
             "Pump & Treatments source changed to CareLink.",
             "Live Activity changed to Large.",
             "AID follower type changed to Trio/iAPS/AAPS.",
@@ -1623,6 +1651,35 @@ final class TroubleshootingLogTests: XCTestCase {
         XCTAssertEqual(kind, .calibrationAccepted(mgDl: 100, readiness: nil))
     }
 
+    func testTransmitterCalibrationTransitionsRemainTypedAndReadable() throws {
+        let entries: [TroubleshootingLogEntry] = [
+            .standard(.transmitterCalibration(.processing), timestamp: referenceDate),
+            .standard(.transmitterCalibration(.completedHigh), timestamp: referenceDate),
+            .standard(.transmitterCalibration(.completedLow), timestamp: referenceDate),
+            .standard(.transmitterCalibration(.rejected(.outsideRange)), timestamp: referenceDate),
+            .standard(.transmitterCalibration(.notPermitted), timestamp: referenceDate)
+        ]
+        let report = makeReport(entries: entries)
+
+        XCTAssertEqual(entries.map(report.message(for:)), [
+            "The transmitter is processing the calibration.",
+            "The transmitter completed the calibration with high confidence.",
+            "The transmitter completed the calibration with low confidence.",
+            "The transmitter rejected the calibration: value outside the permitted range.",
+            "The transmitter reported that calibration is not permitted."
+        ])
+
+        for entry in entries {
+            XCTAssertEqual(
+                try JSONDecoder.troubleshooting.decode(
+                    TroubleshootingLogEntry.self,
+                    from: JSONEncoder.troubleshooting.encode(entry)
+                ),
+                entry
+            )
+        }
+    }
+
     func testEmptyReportExplainsThatNoHistoryExists() {
         XCTAssertTrue(makeReport(entries: []).reportText.contains(
             "No troubleshooting information was recorded during this period."
@@ -1651,6 +1708,84 @@ final class TroubleshootingLogTests: XCTestCase {
         XCTAssertEqual(report.entries(matching: "  \n "), entries)
     }
 
+    func testDexcomBatteryActivityKeepsFirstResultThenUsesTwelveHourCadence() throws {
+        let fixture = makeStore()
+        defer { removeFixture(fixture.directory) }
+        let source = TroubleshootingLogSource.dexcomG7
+
+        fixture.store.record(.detailed(.dexcomBattery(
+            source: source,
+            status: .green,
+            voltageBMillivolts: 2_900,
+            isFirstReading: true
+        ), timestamp: referenceDate.addingTimeInterval(-13 * 60 * 60)))
+        fixture.store.record(.detailed(.dexcomBattery(
+            source: source,
+            status: .green,
+            voltageBMillivolts: 2_890,
+            isFirstReading: false
+        ), timestamp: referenceDate.addingTimeInterval(-12 * 60 * 60)))
+        fixture.store.record(.detailed(.dexcomBattery(
+            source: source,
+            status: .green,
+            voltageBMillivolts: 2_880,
+            isFirstReading: false
+        ), timestamp: referenceDate.addingTimeInterval(-60 * 60)))
+
+        let entries = fixture.store.snapshot()
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(
+            makeReport(entries: entries).message(for: try XCTUnwrap(entries.first)),
+            "Dexcom G7 battery status is green. Voltage B is 2880 mV."
+        )
+    }
+
+    func testDexcomBatteryActivityKeepsTransitionsRecoveryAndEveryRedResult() {
+        let fixture = makeStore()
+        defer { removeFixture(fixture.directory) }
+        let source = TroubleshootingLogSource.dexcomG7
+        let states: [(DexcomBatteryStatus, Int, TimeInterval)] = [
+            (.green, 2_900, -5 * 60 * 60),
+            (.yellow, 2_750, -4 * 60 * 60),
+            (.green, 2_820, -3 * 60 * 60),
+            (.red, 2_690, -2 * 60 * 60),
+            (.red, 2_680, -60 * 60)
+        ]
+
+        for (index, state) in states.enumerated() {
+            fixture.store.record(.detailed(.dexcomBattery(
+                source: source,
+                status: state.0,
+                voltageBMillivolts: state.1,
+                isFirstReading: index == 0
+            ), timestamp: referenceDate.addingTimeInterval(state.2)))
+        }
+
+        XCTAssertEqual(fixture.store.snapshot().count, states.count)
+    }
+
+    func testDexcomBatteryCadenceIsReplayedAcrossRestart() throws {
+        let fixture = makeStore()
+        defer { removeFixture(fixture.directory) }
+        try FileManager.default.createDirectory(at: fixture.directory, withIntermediateDirectories: true)
+        let entries = [0, 1, 13].map { hour -> TroubleshootingLogEntry in
+            .detailed(.dexcomBattery(
+                source: .dexcomG7,
+                status: .yellow,
+                voltageBMillivolts: 2_750,
+                isFirstReading: hour == 0
+            ), timestamp: referenceDate.addingTimeInterval(TimeInterval(hour - 14) * 60 * 60))
+        }
+        let oldFile = try entries.reduce(into: Data()) { data, entry in
+            data.append(try JSONEncoder.troubleshooting.encode(entry))
+            data.append(UInt8(0x0A))
+        }
+        try oldFile.write(to: fixture.fileURL)
+
+        let reloadedStore = TroubleshootingLogStore(fileURL: fixture.fileURL, now: { self.referenceDate })
+        XCTAssertEqual(reloadedStore.snapshot().count, 2)
+    }
+
     private var appInfo: TroubleshootingLogAppInfo {
         makeAppInfo()
     }
@@ -1664,7 +1799,10 @@ final class TroubleshootingLogTests: XCTestCase {
             systemVersion: "19.0",
             modeDescription: "Follower",
             dataSourceDescription: "Nightscout",
+            dexcomConnectionModeDescription: "Co-existence",
             dexcomBluetoothChannelDescription: "Mobile App",
+            dexcomSensorCode: "1234",
+            dexcomBatteryDescription: "Yellow, Voltage A 2880 mV, Voltage B 2750 mV",
             unitDescription: "mg/dL",
             keepAliveDescription: "Normal",
             processingLines: ["BG adjustment: None", "Smoothing: None", "5-minute readings: Disabled"],

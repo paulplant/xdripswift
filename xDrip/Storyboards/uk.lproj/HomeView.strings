@@ -233,3 +233,26 @@
 "scannedSensorLabelCode" = "Код зі сканованої етикетки";
 "noCodeSensorSessionValue" = "0000 (Сеанс без коду)";
 "sensorCodeUnknown" = "Невідомо";
+
+"sensorManagementCalibrationInProgress" = "Калібрування триває...";
+"sensorManagementCalibrationQueued" = "У черзі";
+"sensorManagementCalibrationSent" = "Надіслано, очікування відповіді";
+"sensorManagementCalibrationSentShort" = "Надіслано";
+"sensorManagementCalibrationCompletedShort" = "Завершено";
+"sensorManagementCalibrationRejectedShort" = "Відхилено";
+"sensorManagementCalibrationErrorShort" = "Помилка";
+"sensorManagementCalibrationProcessing" = "Обробка";
+"sensorManagementCalibrationCompletedHigh" = "Завершено, висока точність";
+"sensorManagementCalibrationCompletedLow" = "Завершено, низька точність";
+"sensorManagementCalibrationRejectedFormat" = "Відхилено: %@";
+"sensorManagementCalibrationNotPermitted" = "Калібрування не дозволено";
+"sensorManagementCalibrationNotPermittedNote" = "Передавач зараз не дозволяє калібрування.";
+"sensorManagementCalibrationRejectedRange" = "Значення поза діапазоном";
+"sensorManagementCalibrationRejectedTime" = "Недійсний час калібрування";
+"sensorManagementCalibrationRejectedDuplicate" = "Уже введено";
+"sensorManagementCalibrationRejectedBounds" = "Не вдалося перевірити межі";
+"sensorManagementCalibrationRejectedUnknown" = "Невідома причина";
+"sensorManufactureDate" = "Дата виготовлення";
+"sensorExpirationDate" = "Термін придатності";
+"sensorManagementWaitingForSensorStart" = "Очікування запуску сенсора";
+"sensorManagementStatusWarmingUp" = "Прогрівання";

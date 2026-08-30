@@ -245,3 +245,26 @@
 "scannedSensorLabelCode" = "Koda skenirane oznake";
 "noCodeSensorSessionValue" = "0000 (Seja brez kode)";
 "sensorCodeUnknown" = "Neznano";
+
+"sensorManagementCalibrationInProgress" = "Umerjanje poteka...";
+"sensorManagementCalibrationQueued" = "V čakalni vrsti";
+"sensorManagementCalibrationSent" = "Poslano, čakanje na odgovor";
+"sensorManagementCalibrationSentShort" = "Poslano";
+"sensorManagementCalibrationCompletedShort" = "Dokončano";
+"sensorManagementCalibrationRejectedShort" = "Zavrnjeno";
+"sensorManagementCalibrationErrorShort" = "Napaka";
+"sensorManagementCalibrationProcessing" = "Obdelava";
+"sensorManagementCalibrationCompletedHigh" = "Dokončano, visoka zanesljivost";
+"sensorManagementCalibrationCompletedLow" = "Dokončano, nizka zanesljivost";
+"sensorManagementCalibrationRejectedFormat" = "Zavrnjeno: %@";
+"sensorManagementCalibrationNotPermitted" = "Umerjanje ni dovoljeno";
+"sensorManagementCalibrationNotPermittedNote" = "Oddajnik trenutno ne dovoljuje umerjanja.";
+"sensorManagementCalibrationRejectedRange" = "Vrednost zunaj območja";
+"sensorManagementCalibrationRejectedTime" = "Neveljaven čas umerjanja";
+"sensorManagementCalibrationRejectedDuplicate" = "Že vneseno";
+"sensorManagementCalibrationRejectedBounds" = "Preverjanje meja ni uspelo";
+"sensorManagementCalibrationRejectedUnknown" = "Neznan razlog";
+"sensorManufactureDate" = "Datum izdelave";
+"sensorExpirationDate" = "Rok uporabe";
+"sensorManagementWaitingForSensorStart" = "Čakanje na zagon senzorja";
+"sensorManagementStatusWarmingUp" = "Ogrevanje";

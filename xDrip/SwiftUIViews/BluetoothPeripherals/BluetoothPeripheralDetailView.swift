@@ -331,23 +331,41 @@ struct BluetoothPeripheralTextEntryView: View {
 
 /// Native selection destination requested by a peripheral detail row.
 struct BluetoothPeripheralSelectionListView: View {
+    @State private var selectedRow: Int
+
     let selectionList: BluetoothPeripheralSelectionList
     let close: () -> Void
+    private let initialSelectedRow: Int
+
+    init(selectionList: BluetoothPeripheralSelectionList, close: @escaping () -> Void) {
+        self.selectionList = selectionList
+        self.close = close
+        let initialSelectedRow = selectionList.selectedRow ?? 0
+        self.initialSelectedRow = initialSelectedRow
+        _selectedRow = State(initialValue: initialSelectedRow)
+    }
 
     var body: some View {
         List {
+            if let explanation = selectionList.explanation {
+                Section {
+                    Text(explanation)
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
+            }
+
             Section {
                 ForEach(Array(selectionList.data.enumerated()), id: \.offset) { index, title in
                     Button {
                         select(index: index)
                     } label: {
                         HStack {
-                            Text(title)
+                            optionTitle(title)
                                 .foregroundStyle(Color(.colorPrimary))
 
                             Spacer()
 
-                            if index == selectionList.selectedRow {
+                            if index == selectedRow {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(ConstantsUI.plusButtonColor)
                             }
@@ -368,12 +386,43 @@ struct BluetoothPeripheralSelectionListView: View {
                 Button(Texts_Common.Cancel, action: close)
                     .foregroundStyle(ConstantsAppColors.toolbarNeutralAction)
             }
+            ToolbarItem(placement: .confirmationAction) {
+                Button(Texts_Common.Ok, action: confirmSelection)
+                    .tint(ConstantsAppColors.toolbarAction)
+                    .disabled(selectedRow == initialSelectedRow)
+            }
         }
         .colorScheme(.dark)
     }
 
     private func select(index: Int) {
-        selectionList.actionHandler(index)
+        selectedRow = index
+    }
+
+    @ViewBuilder
+    private func optionTitle(_ title: String) -> some View {
+        if selectionList.emphasizesParenthesizedSuffix,
+           let suffixRange = parenthesizedSuffixRange(in: title) {
+            Text(String(title[..<suffixRange.lowerBound]))
+                + Text(String(title[suffixRange])).bold()
+        } else {
+            Text(title)
+        }
+    }
+
+    private func parenthesizedSuffixRange(in title: String) -> Range<String.Index>? {
+        if title.hasSuffix(")"), let range = title.range(of: " (", options: .backwards) {
+            return title.index(after: range.lowerBound)..<title.endIndex
+        }
+        if title.hasSuffix("）"), let range = title.range(of: "（", options: .backwards) {
+            return range.lowerBound..<title.endIndex
+        }
+        return nil
+    }
+
+    private func confirmSelection() {
+        guard selectedRow != initialSelectedRow else { return }
+        selectionList.actionHandler(selectedRow)
         close()
     }
 }

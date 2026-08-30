@@ -221,3 +221,26 @@
 "scannedSensorLabelCode" = "Scanned Label Code";
 "noCodeSensorSessionValue" = "0000 (No-code session)";
 "sensorCodeUnknown" = "Unknown";
+
+"sensorManagementCalibrationInProgress" = "Calibration In Progress...";
+"sensorManagementCalibrationQueued" = "Queued";
+"sensorManagementCalibrationSent" = "Sent, awaiting response";
+"sensorManagementCalibrationSentShort" = "Sent";
+"sensorManagementCalibrationCompletedShort" = "Completed";
+"sensorManagementCalibrationRejectedShort" = "Rejected";
+"sensorManagementCalibrationErrorShort" = "Error";
+"sensorManagementCalibrationProcessing" = "Processing";
+"sensorManagementCalibrationCompletedHigh" = "Completed, high confidence";
+"sensorManagementCalibrationCompletedLow" = "Completed, low confidence";
+"sensorManagementCalibrationRejectedFormat" = "Rejected: %@";
+"sensorManagementCalibrationNotPermitted" = "Calibration not permitted";
+"sensorManagementCalibrationNotPermittedNote" = "The transmitter does not currently permit calibration.";
+"sensorManagementCalibrationRejectedRange" = "Value outside range";
+"sensorManagementCalibrationRejectedTime" = "Invalid calibration time";
+"sensorManagementCalibrationRejectedDuplicate" = "Already entered";
+"sensorManagementCalibrationRejectedBounds" = "Bounds check failed";
+"sensorManagementCalibrationRejectedUnknown" = "Unknown reason";
+"sensorManufactureDate" = "Manufacture Date";
+"sensorExpirationDate" = "Expiry Date";
+"sensorManagementWaitingForSensorStart" = "Waiting for Sensor Start";
+"sensorManagementStatusWarmingUp" = "Warming Up";

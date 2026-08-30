@@ -149,3 +149,26 @@
 "scannedSensorLabelCode" = "Код со сканированной этикетки";
 "noCodeSensorSessionValue" = "0000 (Сеанс без кода)";
 "sensorCodeUnknown" = "Неизвестно";
+
+"sensorManagementCalibrationInProgress" = "Калибровка выполняется...";
+"sensorManagementCalibrationQueued" = "В очереди";
+"sensorManagementCalibrationSent" = "Отправлено, ожидание ответа";
+"sensorManagementCalibrationSentShort" = "Отправлено";
+"sensorManagementCalibrationCompletedShort" = "Завершено";
+"sensorManagementCalibrationRejectedShort" = "Отклонено";
+"sensorManagementCalibrationErrorShort" = "Ошибка";
+"sensorManagementCalibrationProcessing" = "Обработка";
+"sensorManagementCalibrationCompletedHigh" = "Завершено, высокая точность";
+"sensorManagementCalibrationCompletedLow" = "Завершено, низкая точность";
+"sensorManagementCalibrationRejectedFormat" = "Отклонено: %@";
+"sensorManagementCalibrationNotPermitted" = "Калибровка не разрешена";
+"sensorManagementCalibrationNotPermittedNote" = "Передатчик сейчас не разрешает калибровку.";
+"sensorManagementCalibrationRejectedRange" = "Значение вне диапазона";
+"sensorManagementCalibrationRejectedTime" = "Недопустимое время калибровки";
+"sensorManagementCalibrationRejectedDuplicate" = "Уже введено";
+"sensorManagementCalibrationRejectedBounds" = "Ошибка проверки границ";
+"sensorManagementCalibrationRejectedUnknown" = "Неизвестная причина";
+"sensorManufactureDate" = "Дата изготовления";
+"sensorExpirationDate" = "Срок годности";
+"sensorManagementWaitingForSensorStart" = "Ожидание запуска сенсора";
+"sensorManagementStatusWarmingUp" = "Прогрев";

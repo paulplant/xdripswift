@@ -269,3 +269,26 @@
 "scannedSensorLabelCode" = "Codice etichetta scansionato";
 "noCodeSensorSessionValue" = "0000 (Sessione senza codice)";
 "sensorCodeUnknown" = "Sconosciuto";
+
+"sensorManagementCalibrationInProgress" = "Calibrazione in corso...";
+"sensorManagementCalibrationQueued" = "In coda";
+"sensorManagementCalibrationSent" = "Inviata, in attesa di risposta";
+"sensorManagementCalibrationSentShort" = "Inviata";
+"sensorManagementCalibrationCompletedShort" = "Completata";
+"sensorManagementCalibrationRejectedShort" = "Rifiutata";
+"sensorManagementCalibrationErrorShort" = "Errore";
+"sensorManagementCalibrationProcessing" = "Elaborazione";
+"sensorManagementCalibrationCompletedHigh" = "Completata, affidabilità alta";
+"sensorManagementCalibrationCompletedLow" = "Completata, affidabilità bassa";
+"sensorManagementCalibrationRejectedFormat" = "Rifiutata: %@";
+"sensorManagementCalibrationNotPermitted" = "Calibrazione non consentita";
+"sensorManagementCalibrationNotPermittedNote" = "Il trasmettitore al momento non consente la calibrazione.";
+"sensorManagementCalibrationRejectedRange" = "Valore fuori intervallo";
+"sensorManagementCalibrationRejectedTime" = "Ora di calibrazione non valida";
+"sensorManagementCalibrationRejectedDuplicate" = "Già inserita";
+"sensorManagementCalibrationRejectedBounds" = "Controllo dei limiti non riuscito";
+"sensorManagementCalibrationRejectedUnknown" = "Motivo sconosciuto";
+"sensorManufactureDate" = "Data di produzione";
+"sensorExpirationDate" = "Data di scadenza";
+"sensorManagementWaitingForSensorStart" = "In attesa dell’avvio del sensore";
+"sensorManagementStatusWarmingUp" = "Riscaldamento";

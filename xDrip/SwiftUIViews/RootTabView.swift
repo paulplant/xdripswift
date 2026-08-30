@@ -772,6 +772,13 @@ private struct RootHomeTabView: View {
                 SensorManagementView(
                     activeSensorProvider: dependencies.activeSensorProvider,
                     transmitterProvider: dependencies.transmitterProvider,
+                    dexcomG7Provider: {
+                        guard let transmitter = dependencies.transmitterProvider() as? BluetoothTransmitter,
+                              let dexcomG7 = dependencies.bluetoothPeripheralManager.getBluetoothPeripheral(for: transmitter) as? DexcomG7
+                        else { return nil }
+
+                        return dexcomG7
+                    },
                     calibrationsAccessor: dependencies.calibrationsAccessor,
                     bgReadingsAccessor: dependencies.bgReadingsAccessor,
                     sensorNoiseManager: dependencies.sensorNoiseManager,

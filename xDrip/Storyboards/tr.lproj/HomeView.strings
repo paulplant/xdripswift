@@ -149,3 +149,26 @@
 "scannedSensorLabelCode" = "Taranan Etiket Kodu";
 "noCodeSensorSessionValue" = "0000 (Kodsuz oturum)";
 "sensorCodeUnknown" = "Bilinmiyor";
+
+"sensorManagementCalibrationInProgress" = "Kalibrasyon devam ediyor...";
+"sensorManagementCalibrationQueued" = "Sırada";
+"sensorManagementCalibrationSent" = "Gönderildi, yanıt bekleniyor";
+"sensorManagementCalibrationSentShort" = "Gönderildi";
+"sensorManagementCalibrationCompletedShort" = "Tamamlandı";
+"sensorManagementCalibrationRejectedShort" = "Reddedildi";
+"sensorManagementCalibrationErrorShort" = "Hata";
+"sensorManagementCalibrationProcessing" = "İşleniyor";
+"sensorManagementCalibrationCompletedHigh" = "Tamamlandı, yüksek güven";
+"sensorManagementCalibrationCompletedLow" = "Tamamlandı, düşük güven";
+"sensorManagementCalibrationRejectedFormat" = "Reddedildi: %@";
+"sensorManagementCalibrationNotPermitted" = "Kalibrasyona izin verilmiyor";
+"sensorManagementCalibrationNotPermittedNote" = "Verici şu anda kalibrasyona izin vermiyor.";
+"sensorManagementCalibrationRejectedRange" = "Değer aralık dışında";
+"sensorManagementCalibrationRejectedTime" = "Geçersiz kalibrasyon zamanı";
+"sensorManagementCalibrationRejectedDuplicate" = "Zaten girildi";
+"sensorManagementCalibrationRejectedBounds" = "Sınır kontrolü başarısız";
+"sensorManagementCalibrationRejectedUnknown" = "Bilinmeyen neden";
+"sensorManufactureDate" = "Üretim Tarihi";
+"sensorExpirationDate" = "Son Kullanma Tarihi";
+"sensorManagementWaitingForSensorStart" = "Sensörün başlaması bekleniyor";
+"sensorManagementStatusWarmingUp" = "Isınıyor";

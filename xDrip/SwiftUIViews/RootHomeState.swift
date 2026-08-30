@@ -125,6 +125,7 @@ struct RootHomeSensorNoiseState {
 /// Current data-source description and connection indicators.
 struct RootHomeDataSourceState {
     var title = ""
+    var dexcomConnectionMode: DexcomConnectionMode?
     var detail = ""
     var detailColor = ConstantsAppColors.secondaryText
     var detailSystemImage: String?
@@ -700,6 +701,17 @@ final class RootHomeStateModel: ObservableObject {
         var detailSystemImage: String?
         var detailSystemImageColor = ConstantsAppColors.secondaryText
         var detailSystemImageAccessibilityLabel = ""
+        let dexcomConnectionMode: DexcomConnectionMode?
+
+        if activeSensor == nil {
+            dexcomConnectionMode = nil
+        } else if let transmitter = cgmTransmitter as? CGMG5Transmitter {
+            dexcomConnectionMode = DexcomConnectionMode(useOtherApp: transmitter.useOtherApp)
+        } else if let transmitter = cgmTransmitter as? CGMG7Transmitter {
+            dexcomConnectionMode = DexcomConnectionMode(useOtherApp: transmitter.useOtherApp)
+        } else {
+            dexcomConnectionMode = nil
+        }
 
         if isMaster, sensorState.title.isEmpty {
             if cgmTransmitter?.cgmTransmitterType().sensorType() == .Libre, activeSensor?.startDate != nil {
@@ -799,6 +811,7 @@ final class RootHomeStateModel: ObservableObject {
 
         return RootHomeDataSourceState(
             title: title,
+            dexcomConnectionMode: isMaster ? dexcomConnectionMode : nil,
             detail: detail,
             detailColor: detailColor,
             detailSystemImage: detailSystemImage,

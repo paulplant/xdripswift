@@ -202,3 +202,26 @@
 "scannedSensorLabelCode" = "扫描的标签代码";
 "noCodeSensorSessionValue" = "0000（无代码会话）";
 "sensorCodeUnknown" = "未知";
+
+"sensorManagementCalibrationInProgress" = "校准进行中...";
+"sensorManagementCalibrationQueued" = "已排队";
+"sensorManagementCalibrationSent" = "已发送，等待响应";
+"sensorManagementCalibrationSentShort" = "已发送";
+"sensorManagementCalibrationCompletedShort" = "已完成";
+"sensorManagementCalibrationRejectedShort" = "已拒绝";
+"sensorManagementCalibrationErrorShort" = "错误";
+"sensorManagementCalibrationProcessing" = "处理中";
+"sensorManagementCalibrationCompletedHigh" = "已完成，高置信度";
+"sensorManagementCalibrationCompletedLow" = "已完成，低置信度";
+"sensorManagementCalibrationRejectedFormat" = "已拒绝：%@";
+"sensorManagementCalibrationNotPermitted" = "不允许校准";
+"sensorManagementCalibrationNotPermittedNote" = "发射器当前不允许校准。";
+"sensorManagementCalibrationRejectedRange" = "数值超出范围";
+"sensorManagementCalibrationRejectedTime" = "校准时间无效";
+"sensorManagementCalibrationRejectedDuplicate" = "已输入";
+"sensorManagementCalibrationRejectedBounds" = "范围检查失败";
+"sensorManagementCalibrationRejectedUnknown" = "未知原因";
+"sensorManufactureDate" = "生产日期";
+"sensorExpirationDate" = "有效期至";
+"sensorManagementWaitingForSensorStart" = "正在等待传感器启动";
+"sensorManagementStatusWarmingUp" = "预热中";

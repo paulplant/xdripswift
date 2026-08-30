@@ -151,3 +151,26 @@
 "scannedSensorLabelCode" = "رمز الملصق الممسوح";
 "noCodeSensorSessionValue" = "0000 (جلسة بدون رمز)";
 "sensorCodeUnknown" = "غير معروف";
+
+"sensorManagementCalibrationInProgress" = "المعايرة قيد التقدم...";
+"sensorManagementCalibrationQueued" = "في قائمة الانتظار";
+"sensorManagementCalibrationSent" = "تم الإرسال، بانتظار الرد";
+"sensorManagementCalibrationSentShort" = "تم الإرسال";
+"sensorManagementCalibrationCompletedShort" = "اكتملت";
+"sensorManagementCalibrationRejectedShort" = "مرفوضة";
+"sensorManagementCalibrationErrorShort" = "خطأ";
+"sensorManagementCalibrationProcessing" = "قيد المعالجة";
+"sensorManagementCalibrationCompletedHigh" = "اكتملت، ثقة عالية";
+"sensorManagementCalibrationCompletedLow" = "اكتملت، ثقة منخفضة";
+"sensorManagementCalibrationRejectedFormat" = "مرفوضة: %@";
+"sensorManagementCalibrationNotPermitted" = "المعايرة غير مسموح بها";
+"sensorManagementCalibrationNotPermittedNote" = "جهاز الإرسال لا يسمح بالمعايرة حاليًا.";
+"sensorManagementCalibrationRejectedRange" = "القيمة خارج النطاق";
+"sensorManagementCalibrationRejectedTime" = "وقت معايرة غير صالح";
+"sensorManagementCalibrationRejectedDuplicate" = "تم إدخالها بالفعل";
+"sensorManagementCalibrationRejectedBounds" = "فشل التحقق من الحدود";
+"sensorManagementCalibrationRejectedUnknown" = "سبب غير معروف";
+"sensorManufactureDate" = "تاريخ التصنيع";
+"sensorExpirationDate" = "تاريخ انتهاء الصلاحية";
+"sensorManagementWaitingForSensorStart" = "في انتظار بدء تشغيل المستشعر";
+"sensorManagementStatusWarmingUp" = "جارٍ الإحماء";

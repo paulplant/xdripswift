@@ -149,3 +149,26 @@
 "scannedSensorLabelCode" = "Κωδικός σαρωμένης ετικέτας";
 "noCodeSensorSessionValue" = "0000 (Συνεδρία χωρίς κωδικό)";
 "sensorCodeUnknown" = "Άγνωστος";
+
+"sensorManagementCalibrationInProgress" = "Βαθμονόμηση σε εξέλιξη...";
+"sensorManagementCalibrationQueued" = "Σε αναμονή";
+"sensorManagementCalibrationSent" = "Στάλθηκε, αναμονή απάντησης";
+"sensorManagementCalibrationSentShort" = "Στάλθηκε";
+"sensorManagementCalibrationCompletedShort" = "Ολοκληρώθηκε";
+"sensorManagementCalibrationRejectedShort" = "Απορρίφθηκε";
+"sensorManagementCalibrationErrorShort" = "Σφάλμα";
+"sensorManagementCalibrationProcessing" = "Επεξεργασία";
+"sensorManagementCalibrationCompletedHigh" = "Ολοκληρώθηκε, υψηλή αξιοπιστία";
+"sensorManagementCalibrationCompletedLow" = "Ολοκληρώθηκε, χαμηλή αξιοπιστία";
+"sensorManagementCalibrationRejectedFormat" = "Απορρίφθηκε: %@";
+"sensorManagementCalibrationNotPermitted" = "Η βαθμονόμηση δεν επιτρέπεται";
+"sensorManagementCalibrationNotPermittedNote" = "Ο πομπός δεν επιτρέπει βαθμονόμηση αυτή τη στιγμή.";
+"sensorManagementCalibrationRejectedRange" = "Τιμή εκτός ορίων";
+"sensorManagementCalibrationRejectedTime" = "Μη έγκυρη ώρα βαθμονόμησης";
+"sensorManagementCalibrationRejectedDuplicate" = "Έχει ήδη εισαχθεί";
+"sensorManagementCalibrationRejectedBounds" = "Αποτυχία ελέγχου ορίων";
+"sensorManagementCalibrationRejectedUnknown" = "Άγνωστη αιτία";
+"sensorManufactureDate" = "Ημερομηνία κατασκευής";
+"sensorExpirationDate" = "Ημερομηνία λήξης";
+"sensorManagementWaitingForSensorStart" = "Αναμονή έναρξης αισθητήρα";
+"sensorManagementStatusWarmingUp" = "Προθέρμανση";
