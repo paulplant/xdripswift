@@ -240,9 +240,13 @@ final class RootHomeStateModel: ObservableObject {
         var newState = state
         newState.glucose = glucoseState(from: latestReadings)
         newState.pump = pumpState(deviceStatus: deviceStatus, latestSiteChangeDate: latestSiteChangeDate)
-        newState.loop = dataFlowPolicy.importsTherapyFromCareLink
-            ? careLinkLoopState(snapshot: careLinkSnapshot)
-            : loopState(deviceStatus: deviceStatus)
+        if dataFlowPolicy.importsTherapyFromCareLink {
+            newState.loop = careLinkLoopState(snapshot: careLinkSnapshot)
+        } else if dataFlowPolicy.importsStatusFromNightscout {
+            newState.loop = loopState(deviceStatus: deviceStatus)
+        } else {
+            newState.loop = RootHomeLoopState()
+        }
         newState.sensor = sensorState(activeSensor: activeSensor, cgmTransmitter: cgmTransmitter)
         newState.sensorNoise = sensorNoiseState(activeSensor: activeSensor)
         newState.dataSource = dataSourceState(
@@ -284,9 +288,13 @@ final class RootHomeStateModel: ObservableObject {
                 deviceStatus: deviceStatus,
                 latestSiteChangeDate: latestSiteChangeDate
             )
-            state.loop = dataFlowPolicy.importsTherapyFromCareLink
-                ? self.careLinkLoopState(snapshot: careLinkSnapshot)
-                : self.loopState(deviceStatus: deviceStatus)
+            if dataFlowPolicy.importsTherapyFromCareLink {
+                state.loop = self.careLinkLoopState(snapshot: careLinkSnapshot)
+            } else if dataFlowPolicy.importsStatusFromNightscout {
+                state.loop = self.loopState(deviceStatus: deviceStatus)
+            } else {
+                state.loop = RootHomeLoopState()
+            }
         }
     }
 
