@@ -177,7 +177,7 @@ enum FollowerSettingsRows {
                 SettingsTextEntryContent(
                     title: title,
                     message: message,
-                    keyboardType: .default,
+                    keyboardType: .credential,
                     text: currentValue(),
                     placeholder: placeholder,
                     fieldTitle: nil,

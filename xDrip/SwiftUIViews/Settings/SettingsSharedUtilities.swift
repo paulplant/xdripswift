@@ -597,6 +597,8 @@ private extension SettingsKeyboardType {
             return .default
         case .alphabet:
             return .alphabet
+        case .credential:
+            return .default
         case .numberPad:
             return .numberPad
         case .decimalPad:
@@ -604,6 +606,14 @@ private extension SettingsKeyboardType {
         case .URL:
             return .URL
         }
+    }
+
+    var disablesAutomaticTextChanges: Bool {
+        if case .credential = self {
+            return true
+        }
+
+        return false
     }
 }
 
@@ -1511,6 +1521,8 @@ struct SettingsTextEntryView: View {
                     HStack(spacing: 6) {
                         TextField(textEntry.placeholder ?? "", text: $value)
                             .keyboardType(textEntry.keyboardType?.uiKeyboardType ?? .default)
+                            .textInputAutocapitalization(textEntry.keyboardType?.disablesAutomaticTextChanges == true ? .never : nil)
+                            .autocorrectionDisabled(textEntry.keyboardType?.disablesAutomaticTextChanges == true)
                             .multilineTextAlignment(.trailing)
                             .frame(minWidth: 70, idealWidth: 90, maxWidth: 120)
 
@@ -1523,6 +1535,8 @@ struct SettingsTextEntryView: View {
             } else {
                 TextField(textEntry.placeholder ?? "", text: $value)
                     .keyboardType(textEntry.keyboardType?.uiKeyboardType ?? .default)
+                    .textInputAutocapitalization(textEntry.keyboardType?.disablesAutomaticTextChanges == true ? .never : nil)
+                    .autocorrectionDisabled(textEntry.keyboardType?.disablesAutomaticTextChanges == true)
             }
 
             if let validationMessage {

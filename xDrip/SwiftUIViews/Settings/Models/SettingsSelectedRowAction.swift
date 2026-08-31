@@ -3,6 +3,8 @@ import Foundation
 enum SettingsKeyboardType {
     case `default`
     case alphabet
+    /// Prevents keyboard assistance from changing case-sensitive account and secret values.
+    case credential
     case numberPad
     case decimalPad
     case URL
