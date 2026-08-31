@@ -16,6 +16,7 @@
 "common_days" = "gün";
 "common_landscape_comparingWithLast" = "Son dönemle karşılaştır:";
 "common_landscape_comparisonDays" = "%d gün";
+"common_landscape_comparisonNone" = "Yok";
 "common_today" = "Bugün";
 "common_week" = "hafta";
 "common_hourshort" = "sa";

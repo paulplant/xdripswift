@@ -14,6 +14,7 @@ private func validLandscapeDimension(_ value: CGFloat) -> CGFloat {
 
 /// Supported history periods for the landscape comparison baseline.
 enum LandscapeComparisonPeriod: Int, CaseIterable, Identifiable {
+    case none = 0
     case threeDays = 3
     case sevenDays = 7
     case thirtyDays = 30
@@ -23,7 +24,12 @@ enum LandscapeComparisonPeriod: Int, CaseIterable, Identifiable {
     var id: Int { rawValue }
 
     var title: String {
-        Texts_Common.landscapeComparisonDays(rawValue)
+        switch self {
+        case .none:
+            return Texts_Common.landscapeComparisonNone
+        default:
+            return Texts_Common.landscapeComparisonDays(rawValue)
+        }
     }
 }
 
@@ -392,10 +398,11 @@ struct LandscapeChartView: View {
     private var toolbar: some View {
         HStack(spacing: 12) {
             Text(stateModel.selectedDateText)
-                .font(.system(size: 22, weight: .heavy))
+                .font(.system(size: 18, weight: .heavy))
                 .foregroundStyle(ConstantsAppColors.primaryText)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.7)
+                .layoutPriority(1)
                 .onTapGesture(count: 2) {
                     stateModel.selectToday()
                 }
@@ -510,7 +517,7 @@ struct LandscapeChartView: View {
     }
 
     private var comparisonPeriodMenu: some View {
-        HStack(spacing: presentation == .expandedIPad ? 6 : 0) {
+        HStack(spacing: presentation == .expandedIPad ? 8 : 6) {
             Text(Texts_Common.landscapeComparingWithLast)
                 .foregroundStyle(comparisonPeriodColor)
                 .font(comparisonPeriodFont)
@@ -522,8 +529,10 @@ struct LandscapeChartView: View {
                     } label: {
                         if stateModel.comparisonPeriod == period {
                             Label(period.title, systemImage: "checkmark")
+                                .font(.system(size: 15))
                         } else {
                             Text(period.title)
+                                .font(.system(size: 15))
                         }
                     }
                 }
@@ -538,6 +547,7 @@ struct LandscapeChartView: View {
             }
             .buttonStyle(.plain)
 
+            .dynamicTypeSize(.xSmall ... .large)
         }
         .lineLimit(1)
         .minimumScaleFactor(0.8)
@@ -552,7 +562,7 @@ struct LandscapeChartView: View {
     private var comparisonPeriodFont: Font {
         presentation == .expandedIPad
             ? .system(size: 18, weight: .semibold)
-            : .body
+            : .system(size: 15)
     }
 
 }
@@ -853,7 +863,7 @@ private struct LandscapeTIRBadge: View {
     @State private var rangeMode = RangeMode.timeInRange
 
     var body: some View {
-        HStack(spacing: isExpandedIPad ? 22 : 12) {
+        HStack(spacing: isExpandedIPad ? 22 : 8) {
             HStack(spacing: isExpandedIPad ? 12 : 0) {
                 percentageText(lowPercentage, ConstantsAppColors.statisticsLow)
                 separator
@@ -863,7 +873,7 @@ private struct LandscapeTIRBadge: View {
             }
             .fixedSize(horizontal: true, vertical: false)
 
-            HStack(spacing: isExpandedIPad ? 12 : 0) {
+            HStack(spacing: isExpandedIPad ? 16 : 8) {
                 tirBar
 
                 Menu {
@@ -873,8 +883,10 @@ private struct LandscapeTIRBadge: View {
                         } label: {
                             if rangeMode == mode {
                                 Label(mode.title, systemImage: "checkmark")
+                                    .font(.system(size: 15))
                             } else {
                                 Text(mode.title)
+                                    .font(.system(size: 15))
                             }
                         }
                     }
@@ -884,11 +896,12 @@ private struct LandscapeTIRBadge: View {
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption.weight(.semibold))
                     }
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(ConstantsAppColors.primaryText)
                 }
                 .buttonStyle(.plain)
+                .dynamicTypeSize(.xSmall ... .large)
             }
-            .fixedSize(horizontal: true, vertical: false)
         }
         .frame(height: isExpandedIPad ? 48 : 40)
         .accessibilityLabel(rangeMode.title)
@@ -913,7 +926,13 @@ private struct LandscapeTIRBadge: View {
             .background(Color.white.opacity(0.14))
             .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
         }
-        .frame(width: isExpandedIPad ? 220 : 160, height: isExpandedIPad ? 22 : 18)
+        .frame(
+            minWidth: isExpandedIPad ? 160 : 44,
+            idealWidth: isExpandedIPad ? 220 : 160,
+            maxWidth: isExpandedIPad ? 220 : 160,
+            minHeight: isExpandedIPad ? 22 : 18,
+            maxHeight: isExpandedIPad ? 22 : 18
+        )
     }
 
     private var analysisPoints: [LandscapeGlucosePoint] {
@@ -946,9 +965,9 @@ private struct LandscapeTIRBadge: View {
 
     private var separator: some View {
         Text("·")
-            .font(.system(size: 18, weight: .regular))
+            .font(.system(size: 15, weight: .regular))
             .foregroundStyle(ConstantsAppColors.tertiaryText)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 4)
     }
 
     private func percentage(_ matches: (Double) -> Bool) -> Double {
@@ -969,7 +988,7 @@ private struct LandscapeTIRBadge: View {
 
     private func percentageText(_ value: Double, _ color: Color, weight: Font.Weight = .regular) -> some View {
         Text(percentage(value))
-            .font(.system(size: 18, weight: weight))
+            .font(.system(size: 15, weight: weight))
             .foregroundStyle(color)
             .monospacedDigit()
             .lineLimit(1)

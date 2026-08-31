@@ -1446,14 +1446,16 @@ extension UserDefaults {
         }
     }
 
-    /// number of preceding days used by the landscape AGP comparison
+    /// number of preceding days used by the landscape AGP comparison, or zero to hide it
     var landscapeComparisonDays: Int {
         get {
+            guard object(forKey: Key.landscapeComparisonDays.rawValue) != nil else { return 7 }
+
             let storedValue = integer(forKey: Key.landscapeComparisonDays.rawValue)
-            return [3, 7, 30, 60, 90].contains(storedValue) ? storedValue : 7
+            return [0, 3, 7, 30, 60, 90].contains(storedValue) ? storedValue : 7
         }
         set {
-            let validatedValue = [3, 7, 30, 60, 90].contains(newValue) ? newValue : 7
+            let validatedValue = [0, 3, 7, 30, 60, 90].contains(newValue) ? newValue : 7
             set(validatedValue, forKey: Key.landscapeComparisonDays.rawValue)
         }
     }

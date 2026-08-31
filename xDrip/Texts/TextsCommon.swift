@@ -102,6 +102,10 @@ class Texts_Common {
     static func landscapeComparisonDays(_ days: Int) -> String {
         return String(format: NSLocalizedString("common_landscape_comparisonDays", tableName: filename, bundle: Bundle.main, value: "%d days", comment: "number of days in the landscape AGP comparison picker"), days)
     }
+
+    static let landscapeComparisonNone = {
+        return NSLocalizedString("common_landscape_comparisonNone", tableName: filename, bundle: Bundle.main, value: "None", comment: "option that disables the AGP baseline in the landscape comparison picker")
+    }()
     
     static let today = {
         return NSLocalizedString("common_today", tableName: filename, bundle: Bundle.main, value: "Today", comment: "the word today")

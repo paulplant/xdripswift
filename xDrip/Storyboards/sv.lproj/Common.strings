@@ -16,6 +16,7 @@
 "common_days" = "dagar";
 "common_landscape_comparingWithLast" = "Jämför med de senaste:";
 "common_landscape_comparisonDays" = "%d dagar";
+"common_landscape_comparisonNone" = "Ingen";
 "common_today" = "Idag";
 "common_week" = "vecka";
 "common_hourshort" = "h";

@@ -102,6 +102,7 @@
 "common_days" = "days";
 "common_landscape_comparingWithLast" = "与最近时段比较：";
 "common_landscape_comparisonDays" = "%d 天";
+"common_landscape_comparisonNone" = "无";
 
 /// the word average
 "common_statistics_average" = "Average";

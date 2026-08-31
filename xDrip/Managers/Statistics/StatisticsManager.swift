@@ -263,7 +263,7 @@ public final class StatisticsManager: @unchecked Sendable {
                 let periodEnd = self.calendar.startOfDay(for: referenceDate)
                 guard let periodStart = self.calendar.date(
                     byAdding: .day,
-                    value: -max(1, daysBack),
+                    value: -max(0, daysBack),
                     to: periodEnd
                 ) else {
                     continuation.resume(returning: StatisticsManager.emptyLandscapeBaseline())
@@ -311,7 +311,7 @@ public final class StatisticsManager: @unchecked Sendable {
                 )
                 guard let baselineStart = self.calendar.date(
                     byAdding: .day,
-                    value: -max(1, daysBack),
+                    value: -max(0, daysBack),
                     to: selectedDayStart
                 ) else {
                     continuation.resume(returning: LandscapeAnalytics(
