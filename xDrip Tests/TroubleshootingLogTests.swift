@@ -814,7 +814,49 @@ final class TroubleshootingLogTests: XCTestCase {
             .follower(source: .nightscout, activity: .recovered),
             .follower(source: .nightscout, activity: .downloadFailed)
         ])
+        XCTAssertEqual(Set(entries.map(\.id)).count, entries.count)
         XCTAssertEqual(entries[0].timestamp, recordedTime)
+    }
+
+    func testReloadRepairsDuplicatePersistedIDsWithoutDiscardingEitherFact() throws {
+        let fixture = makeStore()
+        defer { removeFixture(fixture.directory) }
+        try FileManager.default.createDirectory(at: fixture.directory, withIntermediateDirectories: true)
+
+        // Version 7.0 could derive a recovery and retain its accepted glucose while giving both rows
+        // the incoming event's UUID. Reproduce that file so opening Activity Log proves it repairs
+        // existing histories as well as preventing new duplicate identities.
+        let duplicateID = UUID()
+        let failure = TroubleshootingLogEntry.standard(
+            .follower(source: .nightscout, activity: .downloadFailed),
+            timestamp: referenceDate.addingTimeInterval(-1)
+        )
+        let recovery = TroubleshootingLogEntry(
+            id: duplicateID,
+            timestamp: referenceDate,
+            level: .standard,
+            kind: .follower(source: .nightscout, activity: .recovered)
+        )
+        let glucose = TroubleshootingLogEntry(
+            id: duplicateID,
+            timestamp: referenceDate,
+            level: .standard,
+            kind: .glucoseAccepted(mgDl: 123, source: .nightscout, measuredAt: referenceDate)
+        )
+        let oldFile = try [failure, recovery, glucose].reduce(into: Data()) { data, entry in
+            data.append(try JSONEncoder.troubleshooting.encode(entry))
+            data.append(UInt8(0x0A))
+        }
+        try oldFile.write(to: fixture.fileURL)
+
+        let repairedEntries = fixture.store.snapshot()
+        XCTAssertEqual(repairedEntries.count, 3)
+        XCTAssertEqual(Set(repairedEntries.map(\.id)).count, 3)
+
+        let reloadedStore = TroubleshootingLogStore(fileURL: fixture.fileURL, now: { self.referenceDate })
+        let reloadedEntries = reloadedStore.snapshot()
+        XCTAssertEqual(reloadedEntries.map(\.id), repairedEntries.map(\.id))
+        XCTAssertEqual(reloadedEntries.map(\.kind), repairedEntries.map(\.kind))
     }
 
     func testIntegrationKeepsHourlySuccessAndImmediateFailureRecovery() {

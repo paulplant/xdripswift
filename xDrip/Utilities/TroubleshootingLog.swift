@@ -826,6 +826,15 @@ struct TroubleshootingLogEntry: Codable, Equatable, Identifiable {
     func replacingKind(_ kind: TroubleshootingLogKind) -> TroubleshootingLogEntry {
         TroubleshootingLogEntry(id: id, timestamp: timestamp, level: level, kind: kind)
     }
+
+    /// Creates an additional fact derived from this event, with its own row identity.
+    ///
+    /// Unlike `replacingKind`, this is used when the original entry is also retained. Reusing the
+    /// original UUID for both facts would give SwiftUI two rows with the same identity and make the
+    /// Activity Log's rendering undefined.
+    func derivingKind(_ kind: TroubleshootingLogKind) -> TroubleshootingLogEntry {
+        TroubleshootingLogEntry(timestamp: timestamp, level: level, kind: kind)
+    }
 }
 
 extension Notification.Name {
@@ -1015,7 +1024,7 @@ final class TroubleshootingLogStore {
 
         if foundMalformedLine
             || foundLegacyNullPadding
-            || pruned.count != decodedEntries.count
+            || pruned != decodedEntries
             || data.count > maximumFileSize {
             persistenceNeedsRewrite = !rewriteOnQueue(pruned)
         }
@@ -1038,7 +1047,8 @@ final class TroubleshootingLogStore {
         // Apply age and signal quality before count and encoded-size limits. This prevents a fast
         // polling source from evicting useful glucose, failure and recovery records with timer noise.
         let cutoff = referenceDate.addingTimeInterval(-retentionPeriod)
-        let usefulEntries = signalFilteredEntries(entries.filter { $0.timestamp >= cutoff })
+        let filteredEntries = signalFilteredEntries(entries.filter { $0.timestamp >= cutoff })
+        let usefulEntries = entriesWithUniqueIDs(filteredEntries)
         let ageAndCountLimited = Array(usefulEntries.suffix(maximumEntryCount))
 
         var byteCount = 0
@@ -1049,6 +1059,22 @@ final class TroubleshootingLogStore {
             byteCount += line.count
         }
         return sizeLimitedReversed.reversed()
+    }
+
+    /// Repairs histories written before derived rows received independent UUIDs.
+    ///
+    /// A follower recovery inferred from an accepted glucose value used to be persisted alongside
+    /// that value with the same ID. Both are useful, distinct facts, so keep both and assign only the
+    /// later duplicate a fresh identity. `prepareCacheOnQueue` notices the changed entry and rewrites
+    /// the JSON-lines file, making the repair stable across subsequent snapshots and app launches.
+    private func entriesWithUniqueIDs(_ entries: [TroubleshootingLogEntry]) -> [TroubleshootingLogEntry] {
+        var seenIDs = Set<UUID>()
+        return entries.map { entry in
+            guard seenIDs.insert(entry.id).inserted else {
+                return entry.derivingKind(entry.kind)
+            }
+            return entry
+        }
     }
 
     /// Removes timer noise and converts the first healthy outcome after a problem into a recovery.
@@ -1247,9 +1273,11 @@ final class TroubleshootingLogStore {
 
             case let .glucoseAccepted(_, source, _):
                 // An accepted follower reading is stronger evidence of recovery than a successful HTTP
-                // status. Record that transition once, then retain the reading itself without suppression.
+                // status. Record that transition once, with a distinct row identity, then retain the
+                // reading itself without suppression. These are two facts derived from one event and
+                // SwiftUI requires each visible row to have a unique stable ID.
                 if source.isFollowerSource, followerHealth[source] == .problem {
-                    result.append(entry.replacingKind(.follower(source: source, activity: .recovered)))
+                    result.append(entry.derivingKind(.follower(source: source, activity: .recovered)))
                     followerHealth[source] = .healthy
                 }
                 result.append(entry)
