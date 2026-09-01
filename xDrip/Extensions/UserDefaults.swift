@@ -103,6 +103,8 @@ extension UserDefaults {
         case careLinkRegion = "careLinkRegion"
         /// Non-secret stable identifier for the personal CareLink account represented as a patient.
         case careLinkSelectedPatientID = "careLinkSelectedPatientID"
+        /// CarePartner mobile app version used for discovery and data requests.
+        case careLinkVersion = "careLinkVersion"
         /// Flag indicating if the last connections fetch failed (to show error in UI)
         case medtrumEasyViewConnectionsFetchFailed = "medtrumEasyViewConnectionsFetchFailed"
 
@@ -698,6 +700,17 @@ extension UserDefaults {
     @objc dynamic var careLinkSelectedPatientID: String? {
         get { string(forKey: Key.careLinkSelectedPatientID.rawValue) }
         set { set(newValue, forKey: Key.careLinkSelectedPatientID.rawValue) }
+    }
+
+    /// CarePartner mobile app version shared by personal and Care Partner account requests.
+    @objc dynamic var careLinkVersion: String? {
+        get {
+            if string(forKey: Key.careLinkVersion.rawValue) == nil {
+                set(ConstantsCareLink.carePartnerAppVersionDefault, forKey: Key.careLinkVersion.rawValue)
+            }
+            return string(forKey: Key.careLinkVersion.rawValue)
+        }
+        set { set(newValue, forKey: Key.careLinkVersion.rawValue) }
     }
 
     /// holds the enum integer of the type of follower keep-alive to be used

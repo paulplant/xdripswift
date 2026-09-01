@@ -23,6 +23,9 @@ enum AIDStatusStyle: String, Codable, Hashable {
     case loop
     case careLinkPump
     case careLinkSmartGuard
+    /// CareLink has reported active insulin without reporting a pump.
+    /// This reuses the shared therapy-status transport without presenting the source as an AID.
+    case careLinkIOB
 }
 
 /// Common AID state prevents Home, widgets and the Watch from interpreting the same source
@@ -48,6 +51,12 @@ struct AIDStatus: Codable, Hashable {
     }
 
     func presentation(referenceDate: Date = .now) -> AIDStatusPresentation {
+        // A non-pump CareLink account has no delivery state to interpret. Only the age of its IOB
+        // report is meaningful, so keep that presentation separate from the AID condition switch.
+        if style == .careLinkIOB {
+            return careLinkIOBPresentation(referenceDate: referenceDate)
+        }
+
         let hasFreshData = statusUpdatedAt.map {
             $0 <= referenceDate.addingTimeInterval(ConstantsHomeView.aidStatusFutureTolerance)
                 && $0 > referenceDate.addingTimeInterval(-ConstantsHomeView.loopShowNoDataAfterMinutes)
@@ -113,6 +122,38 @@ struct AIDStatus: Codable, Hashable {
         style == .careLinkSmartGuard
             ? ConstantsHomeView.careLinkSmartGuardSystemImage
             : ConstantsHomeView.careLinkPumpSystemImage
+    }
+
+    /// Active insulin from a non-pump CareLink response is data, not an AID state. Its single
+    /// checkmark changes color with age so every consumer presents the same freshness signal.
+    private func careLinkIOBPresentation(referenceDate: Date) -> AIDStatusPresentation {
+        let latestAllowedDate = referenceDate.addingTimeInterval(ConstantsHomeView.aidStatusFutureTolerance)
+        let warningDate = referenceDate.addingTimeInterval(-ConstantsHomeView.loopShowWarningAfterMinutes)
+        let noDataDate = referenceDate.addingTimeInterval(-ConstantsHomeView.loopShowNoDataAfterMinutes)
+        let color: Color
+        let hasFreshData: Bool
+
+        // Match the existing AID age thresholds while retaining one checkmark shape. A changing
+        // pump/AID symbol would imply delivery modes that this account does not report.
+        if let statusUpdatedAt, statusUpdatedAt <= latestAllowedDate, statusUpdatedAt > warningDate {
+            color = .green
+            hasFreshData = true
+        } else if let statusUpdatedAt, statusUpdatedAt <= latestAllowedDate, statusUpdatedAt > noDataDate {
+            color = .yellow
+            hasFreshData = true
+        } else {
+            color = .red
+            hasFreshData = false
+        }
+
+        return AIDStatusPresentation(
+            title: hasFreshData ? statusTitle : staleStatusTitle,
+            systemImage: ConstantsHomeView.careLinkPumpSystemImage,
+            color: color,
+            hasFreshData: hasFreshData,
+            showsActivityAge: lastActivityAt != nil,
+            showsActivityIndicator: false
+        )
     }
 }
 

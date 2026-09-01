@@ -259,7 +259,11 @@ final class RootHomeStateModel: ObservableObject {
             cgmTransmitter: cgmTransmitter,
             connectionStatus: cgmConnectionStatus
         )
-        newState.visibility = visibilityState(sensorState: newState.sensor, usesScreenLockNightLayout: usesScreenLockNightLayout)
+        newState.visibility = visibilityState(
+            sensorState: newState.sensor,
+            careLinkSnapshot: careLinkSnapshot,
+            usesScreenLockNightLayout: usesScreenLockNightLayout
+        )
         newState.controls = controlsState(alertManager: alertManager, bgPostProcessingManager: bgPostProcessingManager)
         newState.isScreenLocked = isScreenLocked
         newState.usesScreenLockNightLayout = usesScreenLockNightLayout
@@ -294,6 +298,10 @@ final class RootHomeStateModel: ObservableObject {
             )
             if dataFlowPolicy.importsTherapyFromCareLink {
                 state.loop = self.careLinkLoopState(snapshot: careLinkSnapshot)
+                // A CareLink poll can change from unknown to pump, IOB-only or glucose-only without
+                // rebuilding the rest of Home, so update both dependent visibility flags here too.
+                state.visibility.showsPump = careLinkSnapshot.pump.isReported && !state.usesScreenLockNightLayout
+                state.visibility.showsLoop = careLinkSnapshot.aidStatus != nil && !state.usesScreenLockNightLayout
             } else if dataFlowPolicy.importsStatusFromNightscout {
                 state.loop = self.loopState(deviceStatus: deviceStatus)
             } else {
@@ -523,7 +531,8 @@ final class RootHomeStateModel: ObservableObject {
 
     /// Presents CareLink pump activity without pretending it is a Nightscout OS-AID loop record.
     func careLinkLoopState(snapshot: CareLinkStatusSnapshot, referenceDate: Date = .now) -> RootHomeLoopState {
-        rootHomeLoopState(aidStatus: snapshot.aidStatus, referenceDate: referenceDate)
+        guard let aidStatus = snapshot.aidStatus else { return RootHomeLoopState() }
+        return rootHomeLoopState(aidStatus: aidStatus, referenceDate: referenceDate)
     }
 
     /// Applies source capabilities after a status has been selected for the historical strip.
@@ -892,12 +901,24 @@ final class RootHomeStateModel: ObservableObject {
 
     // MARK: - Visibility and Controls
 
-    private func visibilityState(sensorState: RootHomeSensorState, usesScreenLockNightLayout: Bool) -> RootHomeVisibilityState {
+    private func visibilityState(
+        sensorState: RootHomeSensorState,
+        careLinkSnapshot: CareLinkStatusSnapshot,
+        usesScreenLockNightLayout: Bool
+    ) -> RootHomeVisibilityState {
         let dataFlowPolicy = UserDefaults.standard.dataFlowPolicy
+        // CareLink capabilities come from each response: pump, IOB-only and glucose-only accounts
+        // share one follower selection but must not reserve the same Home rows.
+        let showsPump = dataFlowPolicy.importsTherapyFromCareLink
+            ? careLinkSnapshot.pump.isReported
+            : dataFlowPolicy.showsPumpData
+        let showsTherapyStatus = dataFlowPolicy.importsTherapyFromCareLink
+            ? careLinkSnapshot.aidStatus != nil
+            : dataFlowPolicy.showsTherapyStatus
 
         return RootHomeVisibilityState(
-            showsPump: dataFlowPolicy.showsPumpData && !usesScreenLockNightLayout,
-            showsLoop: dataFlowPolicy.showsTherapyStatus && !usesScreenLockNightLayout,
+            showsPump: showsPump && !usesScreenLockNightLayout,
+            showsLoop: showsTherapyStatus && !usesScreenLockNightLayout,
             showsMiniChart: UserDefaults.standard.showMiniChart && !usesScreenLockNightLayout,
             showsStatistics: UserDefaults.standard.showStatistics && !usesScreenLockNightLayout,
             showsSensor: !sensorState.maxAge.isEmpty && !usesScreenLockNightLayout,

@@ -24,6 +24,7 @@ final class BackupService: @unchecked Sendable {
         UserDefaults.Key.libreLinkUpPreventLogin.rawValue,
         UserDefaults.Key.libreLinkUpCountry.rawValue,
         UserDefaults.Key.libreLinkUpVersion.rawValue,
+        UserDefaults.Key.careLinkVersion.rawValue,
         UserDefaults.Key.libreLinkUpReAcceptNeeded.rawValue,
         UserDefaults.Key.libreLinkUpIs15DaySensor.rawValue,
         UserDefaults.Key.snoozeAllAlertsFromDate.rawValue,

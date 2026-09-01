@@ -300,7 +300,7 @@ extension CareLinkPumpSnapshot {
     /// Adapts CareLink pump values for the existing compact Home pump calculations.
     /// The CareLink device identity is retained and newer telemetry is never copied into history.
     func homeDeviceStatus(metadata: CareLinkMetadata, checkedAt: Date?) -> NightscoutDeviceStatus? {
-        guard observedAt != nil || lastDataUpdateAt != nil else { return nil }
+        guard isReported, observedAt != nil || lastDataUpdateAt != nil else { return nil }
         var status = NightscoutDeviceStatus()
         let effectiveDate = observedAt ?? lastDataUpdateAt ?? .now
         status.updatedDate = checkedAt ?? .now

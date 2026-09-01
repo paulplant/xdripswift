@@ -516,6 +516,7 @@ class Trace {
         traceInfo.appendStringAndNewLine("    Suppress unlock payload: " + UserDefaults.standard.suppressUnLockPayLoad.description)
         traceInfo.appendStringAndNewLine("    OS-AID share type: " + UserDefaults.standard.loopShareType.description)
         traceInfo.appendStringAndNewLine("    LibreLinkUp version: " + (UserDefaults.standard.libreLinkUpVersion?.description ?? "nil"))
+        traceInfo.appendStringAndNewLine("    CareLink version: " + (UserDefaults.standard.careLinkVersion?.description ?? "nil"))
         traceInfo.appendStringAndNewLine("    CAGE max hours: " + UserDefaults.standard.CAGEMaxHours.description + " (default: " + ConstantsHomeView.CAGEDefaultMaxHours.description + ")")
         traceInfo.appendStringAndNewLine("    StandBy night mode enabled: " + UserDefaults.standard.allowStandByHighContrast.description)
         traceInfo.appendStringAndNewLine("    StandBy big numbers enabled: " + UserDefaults.standard.forceStandByBigNumbers.description)

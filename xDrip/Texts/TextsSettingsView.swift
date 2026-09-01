@@ -1215,6 +1215,22 @@ class Texts_SettingsView {
     static let libreLinkUpVersionMessage = {
         return String(format: NSLocalizedString("libreLinkUpVersionMessage", tableName: filename, bundle: Bundle.main, value: "Setting this value incorrectly could result in your LibreLinkUp account being locked.\n\nDo not touch this setting unless instructed by an xDrip4iOS developer.\n\nThe default version is: %@", comment: "developer settings, ask the user for the libre link up version"), ConstantsLibreLinkUp.libreLinkUpVersionDefault)
     }()
+
+    static let careLinkVersion: String = {
+        return NSLocalizedString("careLinkVersion", tableName: filename, bundle: Bundle.main, value: "CareLink version", comment: "developer settings, CareLink version number")
+    }()
+
+    static func careLinkVersionMessage(defaultVersion: String) -> String {
+        return String(format: NSLocalizedString("careLinkVersionMessage", tableName: filename, bundle: Bundle.main, value: "Setting this value incorrectly could prevent CareLink from downloading data.\n\nDo not touch this setting unless instructed by an xDrip4iOS developer.\n\nThe default version is: %@", comment: "developer settings, ask the user for the CareLink version"), defaultVersion)
+    }
+
+    static let followerVersionFormatMessage = NSLocalizedString(
+        "followerVersionFormatMessage",
+        tableName: filename,
+        bundle: Bundle.main,
+        value: "Enter a version in 0.0.0 format.",
+        comment: "developer settings, follower version validation message"
+    )
     
     static let CAGEMaxHours: String = {
         return NSLocalizedString("CAGEMaxHours", tableName: filename, bundle: Bundle.main, value: "CAGE Max Hours", comment: "developer settings, maximum hours for canula until it expires")

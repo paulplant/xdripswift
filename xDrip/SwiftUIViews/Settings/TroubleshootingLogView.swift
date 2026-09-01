@@ -375,6 +375,7 @@ struct TroubleshootingLogView: View {
             case .aidFollowerChanged: return "waveform.path.ecg"
             case .patientAliasChanged: return "person.text.rectangle.fill"
             case .credentialChanged: return "key.fill"
+            case .followerVersionChanged: return "number.circle.fill"
             case .postProcessingSettings: return "waveform.path.ecg.rectangle"
             }
         case let .dataManagement(activity):

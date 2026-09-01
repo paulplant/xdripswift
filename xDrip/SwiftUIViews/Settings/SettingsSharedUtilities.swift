@@ -1524,6 +1524,7 @@ struct SettingsTextEntryView: View {
                             .textInputAutocapitalization(textEntry.keyboardType?.disablesAutomaticTextChanges == true ? .never : nil)
                             .autocorrectionDisabled(textEntry.keyboardType?.disablesAutomaticTextChanges == true)
                             .multilineTextAlignment(.trailing)
+                            .foregroundStyle(ConstantsAppColors.rowDetailText)
                             .frame(minWidth: 70, idealWidth: 90, maxWidth: 120)
 
                         if let unitText = textEntry.unitText {
@@ -1537,6 +1538,7 @@ struct SettingsTextEntryView: View {
                     .keyboardType(textEntry.keyboardType?.uiKeyboardType ?? .default)
                     .textInputAutocapitalization(textEntry.keyboardType?.disablesAutomaticTextChanges == true ? .never : nil)
                     .autocorrectionDisabled(textEntry.keyboardType?.disablesAutomaticTextChanges == true)
+                    .foregroundStyle(ConstantsAppColors.rowDetailText)
             }
 
             if let validationMessage {
@@ -1556,8 +1558,14 @@ struct SettingsTextEntryView: View {
                     submit()
                 }
                 .tint(ConstantsAppColors.toolbarAction)
-                .disabled(!hasModifiedValue)
+                // A validator is part of the editor contract, so an invalid value must never
+                // enable the confirmation action. This also gives version fields immediate,
+                // deterministic feedback instead of rejecting them only after OK is tapped.
+                .disabled(!canSubmit)
             }
+        }
+        .onChange(of: value) { newValue in
+            validationMessage = textEntry.validator?(newValue)
         }
         .onDisappear {
             guard !didComplete else { return }
@@ -1573,6 +1581,10 @@ struct SettingsTextEntryView: View {
         }
 
         return value != initialValue
+    }
+
+    private var canSubmit: Bool {
+        hasModifiedValue && textEntry.validator?(value) == nil
     }
 
     /// Validates and commits the text entry. Validation errors stay on the pushed

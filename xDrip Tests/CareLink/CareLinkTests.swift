@@ -85,32 +85,35 @@ final class CareLinkTests: XCTestCase {
         XCTAssertEqual(CareLinkConnectionStatus.error.indicatorColor, ConstantsAppColors.urgent)
     }
 
-    func testCareLinkAIDStatusUsesSharedSymbolAndColorRules() {
-        let checking = CareLinkStatusSnapshot().aidStatus.presentation(referenceDate: now)
+    func testCareLinkAIDStatusUsesSharedSymbolAndColorRules() throws {
+        var checkingSnapshot = CareLinkStatusSnapshot()
+        checkingSnapshot.pump.isReported = true
+        let checking = try XCTUnwrap(checkingSnapshot.aidStatus).presentation(referenceDate: now)
         XCTAssertEqual(checking.systemImage, ConstantsHomeView.careLinkSmartGuardSystemImage)
         XCTAssertEqual(checking.color, Color("colorSecondary"))
 
         var snapshot = CareLinkStatusSnapshot(status: .active)
+        snapshot.pump.isReported = true
         snapshot.pump.observedAt = now
         snapshot.pump.algorithmState = "AUTO_BASAL"
-        var presentation = snapshot.aidStatus.presentation(referenceDate: now)
+        var presentation = try XCTUnwrap(snapshot.aidStatus).presentation(referenceDate: now)
         XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkSmartGuardSystemImage)
         XCTAssertEqual(presentation.color, .green)
 
         snapshot.pump.isSuspended = true
-        presentation = snapshot.aidStatus.presentation(referenceDate: now)
+        presentation = try XCTUnwrap(snapshot.aidStatus).presentation(referenceDate: now)
         XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkSuspendedSystemImage)
         XCTAssertEqual(presentation.color, .yellow)
 
         snapshot.pump.isSuspended = false
         snapshot.pump.isCommunicating = false
-        presentation = snapshot.aidStatus.presentation(referenceDate: now)
+        presentation = try XCTUnwrap(snapshot.aidStatus).presentation(referenceDate: now)
         XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkDisconnectedSystemImage)
         XCTAssertEqual(presentation.color, .red)
 
         snapshot.pump.isCommunicating = true
         snapshot.pump.observedAt = now.addingTimeInterval(-ConstantsHomeView.loopShowNoDataAfterMinutes - 1)
-        presentation = snapshot.aidStatus.presentation(referenceDate: now)
+        presentation = try XCTUnwrap(snapshot.aidStatus).presentation(referenceDate: now)
         XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkStaleSystemImage)
         XCTAssertEqual(presentation.color, .yellow)
         XCTAssertEqual(presentation.title, Texts_SettingsView.careLinkNoData)
@@ -143,20 +146,58 @@ final class CareLinkTests: XCTestCase {
         XCTAssertEqual(presentation.color, .gray)
     }
 
-    func testCareLinkAIDStatusUsesPumpUpdateTimestampAndOptionalMetrics() {
+    func testCareLinkAIDStatusUsesPumpUpdateTimestampAndOptionalMetrics() throws {
         var snapshot = CareLinkStatusSnapshot(status: .active)
+        snapshot.pump.isReported = true
         snapshot.pump.lastDataUpdateAt = now
+        let aidStatus = try XCTUnwrap(snapshot.aidStatus)
 
-        XCTAssertEqual(snapshot.aidStatus.statusUpdatedAt, now)
-        XCTAssertEqual(snapshot.aidStatus.lastActivityAt, now)
-        XCTAssertNil(snapshot.aidStatus.iob)
-        XCTAssertNil(snapshot.aidStatus.cob)
-        XCTAssertFalse(snapshot.aidStatus.supportsCOB)
+        XCTAssertEqual(aidStatus.statusUpdatedAt, now)
+        XCTAssertEqual(aidStatus.lastActivityAt, now)
+        XCTAssertNil(aidStatus.iob)
+        XCTAssertNil(aidStatus.cob)
+        XCTAssertFalse(aidStatus.supportsCOB)
 
         let state = RootHomeStateModel().careLinkLoopState(snapshot: snapshot, referenceDate: now)
         XCTAssertEqual(state.iob.value, "- U")
         XCTAssertEqual(state.cob.value, "- g")
         XCTAssertFalse(state.showsCOB)
+    }
+
+    func testCareLinkNoPumpPublishesIOBFreshnessButGlucoseOnlyPublishesNoTherapyStatus() throws {
+        var snapshot = CareLinkStatusSnapshot(status: .active, lastReadingAt: now)
+        snapshot.pump.isCommunicating = false
+        snapshot.pump.isInRange = false
+        XCTAssertNil(snapshot.aidStatus)
+        XCTAssertNil(snapshot.pump.homeDeviceStatus(metadata: snapshot.metadata, checkedAt: now))
+        XCTAssertNil(RootHomeStateModel().careLinkLoopState(snapshot: snapshot, referenceDate: now).statusSystemImage)
+
+        snapshot.pump.activeInsulin = 1.25
+        snapshot.pump.activeInsulinAt = now
+        var aidStatus = try XCTUnwrap(snapshot.aidStatus)
+        XCTAssertEqual(aidStatus.style, .careLinkIOB)
+        XCTAssertEqual(aidStatus.statusTitle, Texts_Common.Ok)
+        XCTAssertFalse(aidStatus.supportsCOB)
+
+        var presentation = aidStatus.presentation(referenceDate: now)
+        XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkPumpSystemImage)
+        XCTAssertEqual(presentation.color, .green)
+        XCTAssertTrue(presentation.hasFreshData)
+
+        snapshot.pump.activeInsulinAt = now.addingTimeInterval(-ConstantsHomeView.loopShowWarningAfterMinutes - 1)
+        aidStatus = try XCTUnwrap(snapshot.aidStatus)
+        presentation = aidStatus.presentation(referenceDate: now)
+        XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkPumpSystemImage)
+        XCTAssertEqual(presentation.color, .yellow)
+        XCTAssertTrue(presentation.hasFreshData)
+
+        snapshot.pump.activeInsulinAt = now.addingTimeInterval(-ConstantsHomeView.loopShowNoDataAfterMinutes - 1)
+        aidStatus = try XCTUnwrap(snapshot.aidStatus)
+        presentation = aidStatus.presentation(referenceDate: now)
+        XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkPumpSystemImage)
+        XCTAssertEqual(presentation.color, .red)
+        XCTAssertFalse(presentation.hasFreshData)
+        XCTAssertEqual(presentation.title, Texts_SettingsView.careLinkNoData)
     }
 
     func testHistoricalCareLinkAIDStatusHidesCOBAfterDeviceStatusNormalization() throws {
@@ -253,9 +294,9 @@ final class CareLinkTests: XCTestCase {
 
     func testCommonAIDStatusEncodesInWatchWidgetAndLiveActivityPayloads() throws {
         var snapshot = CareLinkStatusSnapshot(status: .active)
-        snapshot.pump.observedAt = now
         snapshot.pump.activeInsulin = 1.25
-        let aidStatus = snapshot.aidStatus
+        snapshot.pump.activeInsulinAt = now
+        let aidStatus = try XCTUnwrap(snapshot.aidStatus)
 
         var watchStatus = WatchStatus()
         watchStatus.aidStatus = aidStatus
@@ -353,7 +394,11 @@ final class CareLinkTests: XCTestCase {
     }
 
     func testDiscoveredAuthorizationUsesRegionStateAndPKCE() async throws {
-        let client = CareLinkClient(session: URLSession(configuration: stubConfiguration()), tokenStore: CareLinkMemoryTokenStore())
+        let client = CareLinkClient(
+            session: URLSession(configuration: stubConfiguration()),
+            tokenStore: CareLinkMemoryTokenStore(),
+            appVersionProvider: { "9.7.6" }
+        )
         let transaction = try await client.authorizationTransaction(region: .outsideUnitedStates)
         let query = try XCTUnwrap(URLComponents(url: transaction.authorizationURL, resolvingAgainstBaseURL: false)?.queryItems)
         XCTAssertEqual(transaction.authorizationURL.host, "carelink-login.minimed.eu")
@@ -361,6 +406,17 @@ final class CareLinkTests: XCTestCase {
         XCTAssertEqual(query.first(where: { $0.name == "code_challenge_method" })?.value, "S256")
         XCTAssertNotNil(query.first(where: { $0.name == "code_challenge" })?.value)
         XCTAssertTrue(transaction.configuration.scope.contains("offline_access"))
+        XCTAssertTrue(URLProtocolStub.recorded(path: "/connect/carepartner/v13/discover/android/9.7"))
+    }
+
+    func testCareLinkDiscoveryVersionRequiresMajorMinorPatch() {
+        XCTAssertEqual(
+            ConstantsCareLink.carePartnerDiscoveryURL(appVersion: "3.8.0")?.path,
+            "/connect/carepartner/v13/discover/android/3.8"
+        )
+        ["", "3.8", "3.8.0.1", "3..0", "3.8.x", "٣.٨.٠"].forEach {
+            XCTAssertNil(ConstantsCareLink.carePartnerDiscoveryURL(appVersion: $0))
+        }
     }
 
     // MARK: - Glucose and therapy parsing
@@ -428,6 +484,7 @@ final class CareLinkTests: XCTestCase {
         ])
 
         let payload = try CareLinkTherapyParser.payload(from: data, patientID: "patient-1", now: now)
+        XCTAssertTrue(payload.pump.isReported)
         XCTAssertEqual(payload.treatments.count, 3)
         let basal = try XCTUnwrap(payload.treatments.first(where: { $0.type == .AutomaticBasal }))
         XCTAssertEqual(basal.value, 0.125, accuracy: 0.0001)
@@ -443,6 +500,49 @@ final class CareLinkTests: XCTestCase {
         XCTAssertEqual(payload.pump.batteryPercent, 75)
         XCTAssertEqual(payload.pump.algorithmState, "AUTO_BASAL")
         XCTAssertTrue(payload.pump.reportsActiveSmartGuard)
+    }
+
+    func testTherapyParserDoesNotInferPumpFromSimpleraIOBAndUnavailablePumpFields() throws {
+        let data = try JSONSerialization.data(withJSONObject: [
+            // Simplera is a medical device, but MMT-5100J is a CGM sensor rather than a pump.
+            // CareLink nevertheless returns it through the historically named pump model field.
+            "pumpModelNumber": "MMT-5100J",
+            "medicalDeviceTime": now.timeIntervalSince1970 * 1000,
+            "lastMedicalDeviceDataUpdateServerTime": now.timeIntervalSince1970 * 1000,
+            "activeInsulin": ["amount": 1.25, "datetime": now.timeIntervalSince1970 * 1000],
+            "basal": -1,
+            "reservoirRemainingUnits": -1,
+            "reservoirLevelPercent": -1,
+            "pumpBatteryLevelPercent": -1,
+            "pumpSuspended": false,
+            "pumpCommunicationState": false,
+            "conduitMedicalDeviceInRange": true,
+            "maxAutoBasalRate": -1,
+            "maxBolusAmount": -1
+        ])
+
+        let pump = try CareLinkTherapyParser.payload(from: data, patientID: "patient", now: now).pump
+        XCTAssertFalse(pump.isReported)
+        XCTAssertEqual(pump.activeInsulin, 1.25)
+        XCTAssertEqual(try XCTUnwrap(pump.activeInsulinAt).timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 1)
+        XCTAssertEqual(pump.isCommunicating, false)
+        XCTAssertEqual(pump.isInRange, true)
+        XCTAssertNil(pump.currentBasalRate)
+        XCTAssertNil(pump.reservoirUnits)
+        XCTAssertNil(pump.batteryPercent)
+        XCTAssertNil(pump.maximumAutoBasalRate)
+        XCTAssertNil(pump.maximumBolusAmount)
+
+        var snapshot = CareLinkStatusSnapshot(status: .active, lastReadingAt: now, pump: pump)
+        let presentation = try XCTUnwrap(snapshot.aidStatus).presentation(referenceDate: now)
+        XCTAssertEqual(presentation.systemImage, ConstantsHomeView.careLinkPumpSystemImage)
+        XCTAssertEqual(presentation.title, Texts_Common.Ok)
+        XCTAssertEqual(presentation.color, .green)
+
+        // The service connection remains healthy; absent-pump communication flags must not turn
+        // either the service or the Home therapy strip into a red disconnected-pump warning.
+        snapshot.status = CareLinkStatePolicy.status(hasGlucose: true, lastReadingAt: now, pump: pump, now: now)
+        XCTAssertEqual(snapshot.status, .active)
     }
 
     func testAutoBasalIdentityDoesNotChangeWhenNextMarkerArrives() throws {
@@ -678,8 +778,9 @@ final class CareLinkTests: XCTestCase {
     }
 
     func testSuccessfulResponseWithDisconnectedPumpReportsNoData() {
-        let disconnected = CareLinkPumpSnapshot(isCommunicating: false, isInRange: false)
-        let connected = CareLinkPumpSnapshot(isCommunicating: true, isInRange: true)
+        let disconnected = CareLinkPumpSnapshot(isReported: true, isCommunicating: false, isInRange: false)
+        let connected = CareLinkPumpSnapshot(isReported: true, isCommunicating: true, isInRange: true)
+        let noPump = CareLinkPumpSnapshot(isCommunicating: false, isInRange: false)
 
         XCTAssertEqual(
             CareLinkStatePolicy.status(hasGlucose: true, lastReadingAt: now.addingTimeInterval(-60), pump: disconnected, now: now),
@@ -693,12 +794,18 @@ final class CareLinkTests: XCTestCase {
             CareLinkStatePolicy.status(hasGlucose: true, lastReadingAt: now.addingTimeInterval(-60), pump: connected, now: now),
             .active
         )
+        XCTAssertEqual(
+            CareLinkStatePolicy.status(hasGlucose: true, lastReadingAt: now.addingTimeInterval(-60), pump: noPump, now: now),
+            .active
+        )
+        XCTAssertNil(CareLinkStatePolicy.detail(hasGlucose: true, pump: noPump))
     }
 
     // MARK: - Pump history
 
     func testCareLinkPumpSnapshotCreatesStableHistoricalStatus() throws {
         let pump = CareLinkPumpSnapshot(
+            isReported: true,
             observedAt: now,
             activeInsulin: 1.25,
             currentBasalRate: 0.8,
@@ -722,6 +829,7 @@ final class CareLinkTests: XCTestCase {
 
     func testDisconnectedCareLinkPumpStatusIsStoredConsistently() throws {
         let pump = CareLinkPumpSnapshot(
+            isReported: true,
             observedAt: now,
             isSuspended: false,
             isCommunicating: false,
@@ -761,6 +869,7 @@ final class CareLinkTests: XCTestCase {
 
     func testSparseHistoricalStatusRetainsPriorPumpTelemetryForDisplay() throws {
         let fullStatus = try XCTUnwrap(CareLinkPumpSnapshot(
+            isReported: true,
             observedAt: now.addingTimeInterval(-600),
             activeInsulin: 1.25,
             currentBasalRate: 0.8,
@@ -836,6 +945,41 @@ final class CareLinkTests: XCTestCase {
         let delegate = FollowerDelegateSpy()
         await CareLinkFollowManager.deliver([FollowerBgReading(timeStamp: now, sgv: 121)], to: delegate)
         XCTAssertEqual(delegate.received.map(\.sgv), [121])
+    }
+
+    @MainActor
+    func testCareLinkVersionUpdateCatcherPromotesOlderDefaultsWithoutDowngradingNewerOverride() {
+        let defaultsSnapshot = CareLinkDefaultsSnapshot(keys: [
+            .isMaster,
+            .careLinkVersion,
+        ])
+        let defaults = UserDefaults.standard
+        defaults.isMaster = true
+        let coreDataManager = CoreDataManager(inMemoryModelName: ConstantsCoreData.modelName)
+
+        func makeManager() -> CareLinkFollowManager {
+            CareLinkFollowManager(
+                coreDataManager: coreDataManager,
+                followerDelegate: FollowerDelegateSpy(),
+                backgroundKeepAliveManager: CareLinkNoOpKeepAliveManager(),
+                startsInitialDownload: false,
+                pollingSchedulerFactory: { _, _ in CareLinkNoOpTimer() }
+            )
+        }
+
+        defaults.careLinkVersion = "3.6.0"
+        var manager: CareLinkFollowManager? = makeManager()
+        XCTAssertNotNil(manager)
+        XCTAssertEqual(defaults.careLinkVersion, ConstantsCareLink.carePartnerAppVersionDefault)
+        manager = nil
+
+        defaults.careLinkVersion = "9.9.9"
+        manager = makeManager()
+        XCTAssertNotNil(manager)
+        XCTAssertEqual(defaults.careLinkVersion, "9.9.9")
+        manager = nil
+
+        defaultsSnapshot.restore()
     }
 
     func testPendingTherapyBatchRetainsUniqueRecordsAndUsesNewestValues() {
@@ -1256,7 +1400,7 @@ final class CareLinkTests: XCTestCase {
 
     func testPersonalAccountUsesBearerWithoutBrowserCookiesAndProfileFallback() async throws {
         URLProtocolStub.omitUsername = true
-        let client = makeClient()
+        let client = makeClient(appVersion: "9.7.6")
         let result = try await client.userAndPatients(region: .outsideUnitedStates)
         XCTAssertEqual(result.metadata.role, "PATIENT_OUS")
         XCTAssertEqual(result.metadata.accountName, "profile-user")
@@ -1264,6 +1408,19 @@ final class CareLinkTests: XCTestCase {
         let headers = try XCTUnwrap(URLProtocolStub.headers.last)
         XCTAssertEqual(headers["Authorization"], "Bearer valid")
         XCTAssertNil(headers["Cookie"])
+
+        URLProtocolStub.route = .periodic
+        _ = try await client.fetchPatientData(
+            region: .outsideUnitedStates,
+            patient: try XCTUnwrap(result.patients.first),
+            username: result.metadata.accountName,
+            accountRole: result.metadata.role,
+            countryCode: result.metadata.countryCode,
+            linkedPatientCount: result.patients.count
+        )
+        let bodies = URLProtocolStub.requestBodies.filter { $0["role"] == "patient" }
+        XCTAssertFalse(bodies.isEmpty)
+        XCTAssertTrue(bodies.allSatisfy { $0["appVersion"] == "9.7.6" })
     }
 
     func testCarePartnerResolvesLinkedPatientsAndScopesPeriodicRequest() async throws {
@@ -1282,6 +1439,7 @@ final class CareLinkTests: XCTestCase {
         let bodies = URLProtocolStub.requestBodies.filter { $0["role"] == "carepartner" }
         XCTAssertFalse(bodies.isEmpty)
         XCTAssertTrue(bodies.allSatisfy { $0["username"] == "patient1" && $0["patientId"] == "child2" })
+        XCTAssertTrue(bodies.allSatisfy { $0["appVersion"] == ConstantsCareLink.carePartnerAppVersionDefault })
     }
 
     func testCarePartnerWithNoLinksRemainsAValidAuthenticatedAccount() async throws {
@@ -1509,10 +1667,15 @@ final class CareLinkTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeClient() -> CareLinkClient {
+    private func makeClient(appVersion: String = ConstantsCareLink.carePartnerAppVersionDefault) -> CareLinkClient {
         let store = CareLinkMemoryTokenStore()
         try! store.save(credential())
-        return CareLinkClient(session: URLSession(configuration: stubConfiguration()), tokenStore: store, now: { self.now })
+        return CareLinkClient(
+            session: URLSession(configuration: stubConfiguration()),
+            tokenStore: store,
+            now: { self.now },
+            appVersionProvider: { appVersion }
+        )
     }
 
     private func dataFlowPolicy(
@@ -1658,18 +1821,22 @@ private final class URLProtocolStub: URLProtocol {
 
     override func startLoading() {
         guard let url = request.url else { return fail() }
+        let requestBody = Self.bodyData(from: request)
         Self.lock.lock()
         Self.paths.append(url.path)
         Self.headers.append(request.allHTTPHeaderFields ?? [:])
-        if let body = Self.bodyData(from: request),
+        if let body = requestBody,
            let object = try? JSONSerialization.jsonObject(with: body) as? [String: String] {
             Self.requestBodies.append(object)
         }
         Self.lock.unlock()
         let path = url.path
 
-        let formFields = Self.formFields(from: request)
-        if path == "/connect/carepartner/v13/discover/android/3.6" {
+        let formFields = Self.formFields(
+            from: requestBody,
+            contentType: request.value(forHTTPHeaderField: "Content-Type")
+        )
+        if path.hasPrefix("/connect/carepartner/v13/discover/android/") {
             return respond(200, [
                 "CP": [
                     ["region": "US", "UseSSOConfiguration": "Auth0SSOConfiguration", "Auth0SSOConfiguration": "https://carelink.minimed.com/oauth-config.json"],
@@ -1781,8 +1948,10 @@ private final class URLProtocolStub: URLProtocol {
         return data
     }
 
-    private static func formFields(from request: URLRequest) -> [String: String] {
-        guard let data = bodyData(from: request), let value = String(data: data, encoding: .utf8) else { return [:] }
+    private static func formFields(from data: Data?, contentType: String?) -> [String: String] {
+        guard contentType?.hasPrefix("application/x-www-form-urlencoded") == true,
+              let data,
+              let value = String(data: data, encoding: .utf8) else { return [:] }
         var components = URLComponents()
         components.percentEncodedQuery = value
         return Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).compactMap { item in

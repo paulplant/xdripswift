@@ -476,8 +476,9 @@ struct TroubleshootingPostProcessingSettings: Codable, Equatable {
 }
 
 /// Settings and account changes that materially alter how glucose or therapy information flows.
-/// No case accepts a free-form value. In particular, aliases and credentials are represented only
-/// by whether they were set or removed, never by the value itself.
+/// No case accepts sensitive free-form content. In particular, aliases and credentials are
+/// represented only by whether they were set or removed, never by the value itself. Validated
+/// follower protocol versions are retained because the exact transition is diagnostic evidence.
 enum TroubleshootingConfigurationActivity: Codable, Equatable {
     case modeChanged(isMaster: Bool)
     case followerSourceChanged(TroubleshootingLogSource)
@@ -491,6 +492,7 @@ enum TroubleshootingConfigurationActivity: Codable, Equatable {
     case aidFollowerChanged(TroubleshootingAIDFollowerMode)
     case patientAliasChanged(isSet: Bool)
     case credentialChanged(source: TroubleshootingLogSource, field: TroubleshootingCredentialField, isSet: Bool)
+    case followerVersionChanged(source: TroubleshootingLogSource, previousVersion: String, newVersion: String)
     case postProcessingSettings(TroubleshootingPostProcessingSettings)
 }
 
@@ -1994,6 +1996,8 @@ struct TroubleshootingLogReportBuilder {
             case let .credentialChanged(source, field, isSet):
                 let fieldName = field == .username ? "username" : "password"
                 return "\(source.name) \(fieldName) was \(isSet ? "changed" : "removed")."
+            case let .followerVersionChanged(source, previousVersion, newVersion):
+                return "\(source.name) versions changed by user from \(previousVersion) to \(newVersion)."
             case let .postProcessingSettings(settings):
                 let adjustment: String
                 if settings.adjustmentEnabled,

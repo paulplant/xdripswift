@@ -153,9 +153,27 @@ final class CareLinkFollowManager: NSObject, CareLinkControlling {
         self.startsInitialDownload = startsInitialDownload
         self.pollingSchedulerFactory = pollingSchedulerFactory
         super.init()
+
+        // Mirror LibreLinkUp's launch-time update catcher: when a release ships a numerically
+        // higher default, promote the stored working value. A value already at or above the new
+        // default is preserved so a newer manual server-compatibility override is never downgraded.
+        let storedCareLinkVersion = UserDefaults.standard.careLinkVersion ?? "0.0.0"
+        if ConstantsCareLink.carePartnerAppVersionDefault.compare(storedCareLinkVersion, options: .numeric) == .orderedDescending {
+            trace(
+                "in init, updating userdefaults CareLink version from '%{public}@' to '%{public}@'",
+                log: log,
+                category: ConstantsLog.categoryCareLinkFollowManager,
+                type: .info,
+                storedCareLinkVersion,
+                ConstantsCareLink.carePartnerAppVersionDefault
+            )
+            UserDefaults.standard.careLinkVersion = ConstantsCareLink.carePartnerAppVersionDefault
+        }
+
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.isMaster.rawValue, options: .new, context: nil)
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.followerDataSourceType.rawValue, options: .new, context: nil)
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.careLinkSelectedPatientID.rawValue, options: .new, context: nil)
+        UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.careLinkVersion.rawValue, options: .new, context: nil)
         UserDefaults.standard.addObserver(self, forKeyPath: UserDefaults.Key.followerBackgroundKeepAliveType.rawValue, options: .new, context: nil)
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -612,7 +630,7 @@ final class CareLinkFollowManager: NSObject, CareLinkControlling {
             route.rawValue,
             readings.count,
             therapy.treatments.count,
-            therapy.pump.observedAt == nil ? "absent" : "present",
+            therapy.pump.isReported ? "present" : "absent",
             connectionStatus.rawValue,
             therapy.pump.isCommunicating.map { String(describing: $0) } ?? "unknown",
             therapy.pump.isInRange.map { String(describing: $0) } ?? "unknown"
@@ -1015,6 +1033,10 @@ final class CareLinkFollowManager: NSObject, CareLinkControlling {
             Task { @MainActor [weak self] in self?.reconcileLifecycle() }
         case .careLinkSelectedPatientID:
             refreshNow()
+        case .careLinkVersion:
+            // Apply a validated protocol override immediately rather than waiting for the current
+            // polling deadline to expire.
+            refreshNow()
         case .followerBackgroundKeepAliveType:
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -1030,7 +1052,7 @@ final class CareLinkFollowManager: NSObject, CareLinkControlling {
 
     /// Removes KVO, timers and lifecycle closures owned by this manager.
     deinit {
-        for key in [UserDefaults.Key.isMaster, .followerDataSourceType, .careLinkSelectedPatientID, .followerBackgroundKeepAliveType] {
+        for key in [UserDefaults.Key.isMaster, .followerDataSourceType, .careLinkSelectedPatientID, .careLinkVersion, .followerBackgroundKeepAliveType] {
             UserDefaults.standard.removeObserver(self, forKeyPath: key.rawValue)
         }
         if pollingSchedulerIsRunning {

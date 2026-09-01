@@ -189,14 +189,14 @@ enum CareLinkStatePolicy {
     /// Distinguishes a healthy service response from a pump that has lost its phone relay.
     /// Historical glucose remains importable, but the follower must not advertise live delivery.
     static func status(hasGlucose: Bool, lastReadingAt: Date?, pump: CareLinkPumpSnapshot, now: Date) -> CareLinkConnectionStatus {
-        if pump.isCommunicating == false || pump.isInRange == false { return .noData }
+        if pump.isReported && (pump.isCommunicating == false || pump.isInRange == false) { return .noData }
         guard hasGlucose else { return .noData }
         return CareLinkPollingPolicy.isStale(lastReadingAt: lastReadingAt, now: now) ? .stale : .active
     }
 
     /// Gives a successful but disconnected pump response a clear recovery explanation.
     static func detail(hasGlucose: Bool, pump: CareLinkPumpSnapshot) -> String? {
-        if pump.isCommunicating == false || pump.isInRange == false {
+        if pump.isReported && (pump.isCommunicating == false || pump.isInRange == false) {
             return Texts_SettingsView.careLinkPumpNotCommunicating
         }
         return hasGlucose ? nil : Texts_SettingsView.careLinkNoGlucoseReadings
@@ -248,6 +248,9 @@ struct CareLinkMetadata: Codable, Equatable {
 /// CareLink payloads use different names across pump generations. Keeping that protocol detail
 /// out of the views prevents each screen from interpreting the same response differently.
 struct CareLinkPumpSnapshot: Equatable {
+    /// True only when the response contains positive pump-specific evidence. Communication flags
+    /// are deliberately excluded because CareLink reports them as false when no pump is used.
+    var isReported = false
     var observedAt: Date?
     var lastDataUpdateAt: Date?
     var activeInsulin: Double?
@@ -330,7 +333,25 @@ struct CareLinkStatusSnapshot: Equatable {
 extension CareLinkStatusSnapshot {
     /// CareLink has no Nightscout device-status record. Its server/pump update time is also the
     /// freshness anchor because nominal glucose timestamps were observed ahead of server delivery.
-    var aidStatus: AIDStatus {
+    var aidStatus: AIDStatus? {
+        if !pump.isReported {
+            // InPen and similar sources can contribute IOB through CareLink without contributing a
+            // pump. Glucose-only accounts have no therapy status at all and therefore no AID strip.
+            guard pump.activeInsulin != nil else { return nil }
+            let updatedAt = pump.activeInsulinAt ?? pump.lastDataUpdateAt ?? pump.observedAt ?? lastReadingAt
+            return AIDStatus(
+                condition: .active,
+                style: .careLinkIOB,
+                statusUpdatedAt: updatedAt,
+                lastActivityAt: updatedAt,
+                iob: pump.activeInsulin,
+                cob: nil,
+                statusTitle: Texts_Common.Ok,
+                staleStatusTitle: Texts_SettingsView.careLinkNoData
+            )
+        }
+
+        // Once a pump is positively identified, retain the existing delivery-state presentation.
         let observedAt = pump.observedAt ?? pump.lastDataUpdateAt
         let condition: AIDStatusCondition
 

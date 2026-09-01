@@ -1392,6 +1392,8 @@ final class TroubleshootingLogTests: XCTestCase {
             .standard(.configuration(.patientAliasChanged(isSet: true)), timestamp: referenceDate),
             .standard(.configuration(.credentialChanged(source: .careLink, field: .username, isSet: true)), timestamp: referenceDate),
             .standard(.configuration(.credentialChanged(source: .careLink, field: .password, isSet: false)), timestamp: referenceDate),
+            .standard(.configuration(.followerVersionChanged(source: .libreLinkUp, previousVersion: "4.16.0", newVersion: "4.17.0")), timestamp: referenceDate),
+            .standard(.configuration(.followerVersionChanged(source: .careLink, previousVersion: "3.6.0", newVersion: "3.8.0")), timestamp: referenceDate),
             .standard(.configuration(.postProcessingSettings(postProcessingSettings)), timestamp: referenceDate),
             .standard(.heartbeatReceived, timestamp: referenceDate)
         ]
@@ -1413,6 +1415,8 @@ final class TroubleshootingLogTests: XCTestCase {
             "Patient alias was changed.",
             "CareLink username was changed.",
             "CareLink password was removed.",
+            "LibreLinkUp versions changed by user from 4.16.0 to 4.17.0.",
+            "CareLink versions changed by user from 3.6.0 to 3.8.0.",
             "Post-processing settings: BG adjustment scale 1.12, offset -4.5, emphasis Normal; smoothing Kalman, strength 2, 30-minute period; 5-minute readings enabled. Applied from 3 hours ago.",
             "Heartbeat received."
         ])
