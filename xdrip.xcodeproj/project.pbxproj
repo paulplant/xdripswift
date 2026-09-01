@@ -11,6 +11,8 @@
 		5A0100043015000100000001 /* GlucoseRangeDistributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0100033015000100000001 /* GlucoseRangeDistributionTests.swift */; };
 		4D7B00023014000200000001 /* CGMG5SensorSessionDetectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7B00013014000200000001 /* CGMG5SensorSessionDetectionTests.swift */; };
 		4D7E00023017000200000001 /* DexcomG6BluetoothSlotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7E00013017000200000001 /* DexcomG6BluetoothSlotTests.swift */; };
+		4D800002301F000100000001 /* Libre2FrameDeliveryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D800001301F000100000001 /* Libre2FrameDeliveryMonitor.swift */; };
+		4D800004301F000100000001 /* Libre2FrameDeliveryMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D800003301F000100000001 /* Libre2FrameDeliveryMonitorTests.swift */; };
 		4D7D00023016000200000001 /* BluetoothPeripheralDisplayStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7D00013016000200000001 /* BluetoothPeripheralDisplayStatusTests.swift */; };
 		4D7A00023014000100000001 /* TroubleshootingLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A00013014000100000001 /* TroubleshootingLog.swift */; };
 		4D7A00043014000100000001 /* TroubleshootingLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A00033014000100000001 /* TroubleshootingLogView.swift */; };
@@ -886,6 +888,8 @@
 		5A0100033015000100000001 /* GlucoseRangeDistributionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseRangeDistributionTests.swift; sourceTree = "<group>"; };
 		4D7B00013014000200000001 /* CGMG5SensorSessionDetectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGMG5SensorSessionDetectionTests.swift; sourceTree = "<group>"; };
 		4D7E00013017000200000001 /* DexcomG6BluetoothSlotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DexcomG6BluetoothSlotTests.swift; sourceTree = "<group>"; };
+		4D800001301F000100000001 /* Libre2FrameDeliveryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Libre2FrameDeliveryMonitor.swift; sourceTree = "<group>"; };
+		4D800003301F000100000001 /* Libre2FrameDeliveryMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Libre2FrameDeliveryMonitorTests.swift; sourceTree = "<group>"; };
 		4D7D00013016000200000001 /* BluetoothPeripheralDisplayStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothPeripheralDisplayStatusTests.swift; sourceTree = "<group>"; };
 		4D7A00013014000100000001 /* TroubleshootingLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingLog.swift; sourceTree = "<group>"; };
 		4D7A00033014000100000001 /* TroubleshootingLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TroubleshootingLogView.swift; sourceTree = "<group>"; };
@@ -2532,6 +2536,7 @@
 			children = (
 				5A0100033015000100000001 /* GlucoseRangeDistributionTests.swift */,
 				4D7D00013016000200000001 /* BluetoothPeripheralDisplayStatusTests.swift */,
+				4D800003301F000100000001 /* Libre2FrameDeliveryMonitorTests.swift */,
 				4D7C00013015000100000001 /* CalibrationReadinessTests.swift */,
 				4D7B00013014000200000001 /* CGMG5SensorSessionDetectionTests.swift */,
 				4B0C00242F3B000100000001 /* DexcomG6SensorLabelTests.swift */,
@@ -2718,6 +2723,7 @@
 				F80D916A24F82913006840B5 /* CGMLibre2Transmitter.swift */,
 				F8B955EA2591355200C06016 /* CGMLibre2Transmitter+TestData.swift */,
 				F80D916C24F82A17006840B5 /* CGMLibre2TransmitterDelegate.swift */,
+				4D800001301F000100000001 /* Libre2FrameDeliveryMonitor.swift */,
 			);
 			path = Libre2;
 			sourceTree = "<group>";
@@ -4290,6 +4296,7 @@
 			files = (
 				5A0100043015000100000001 /* GlucoseRangeDistributionTests.swift in Sources */,
 				4D7D00023016000200000001 /* BluetoothPeripheralDisplayStatusTests.swift in Sources */,
+				4D800004301F000100000001 /* Libre2FrameDeliveryMonitorTests.swift in Sources */,
 				4D7C00023015000100000001 /* CalibrationReadinessTests.swift in Sources */,
 				4D7B00023014000200000001 /* CGMG5SensorSessionDetectionTests.swift in Sources */,
 				4B0C00252F3B000100000001 /* DexcomG6SensorLabelTests.swift in Sources */,
@@ -4684,6 +4691,7 @@
 				F821CF6B229FC22D005C1E43 /* Endpoint.swift in Sources */,
 				F821CF58229BF43A005C1E43 /* AlertManager.swift in Sources */,
 				F80D916B24F82913006840B5 /* CGMLibre2Transmitter.swift in Sources */,
+				4D800002301F000100000001 /* Libre2FrameDeliveryMonitor.swift in Sources */,
 				F8297F59238EE14E00D74D66 /* TextsBluetoothPeripheralsView.swift in Sources */,
 				47FB28082636B04200042FFB /* StatisticsManager.swift in Sources */,
 				F80D916424F5B3DE006840B5 /* Libre2+CoreDataProperties.swift in Sources */,
