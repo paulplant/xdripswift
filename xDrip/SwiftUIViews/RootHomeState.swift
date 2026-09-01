@@ -76,6 +76,10 @@ struct RootHomeStatisticsState {
     var low = RootHomeMetricState(title: Texts_Common.lowStatistics, value: "-")
     var inRange = RootHomeMetricState(title: UserDefaults.standard.timeInRangeType.title, value: "-")
     var high = RootHomeMetricState(title: Texts_Common.highStatistics, value: "-")
+    /// Exact values retained for pie geometry. Display text uses the jointly allocated integers.
+    var lowPercentage = 0.0
+    var inRangePercentage = 0.0
+    var highPercentage = 0.0
     var average = RootHomeMetricState(title: Texts_Common.averageStatistics, value: "-")
     var a1c = RootHomeMetricState(title: Texts_Common.a1cStatistics, value: "-")
     var cv = RootHomeMetricState(title: Texts_Common.cvStatistics, value: "-")
@@ -304,6 +308,9 @@ final class RootHomeStateModel: ObservableObject {
             state.statistics.low.value = "-"
             state.statistics.inRange.value = "-"
             state.statistics.high.value = "-"
+            state.statistics.lowPercentage = 0
+            state.statistics.inRangePercentage = 0
+            state.statistics.highPercentage = 0
             state.statistics.average.value = "-"
             state.statistics.a1c.value = "-"
             state.statistics.cv.value = "-"
@@ -318,6 +325,12 @@ final class RootHomeStateModel: ObservableObject {
             ? statistics.averageStatisticValue.bgValueToString(mgDl: isMgDl) + " " + glucoseUnit
             : "-"
         let a1cValue: String
+        let rangeDistribution = GlucoseRangeDistribution(
+            below: statistics.lowStatisticValue,
+            inRange: statistics.inRangeStatisticValue,
+            above: statistics.highStatisticValue
+        )
+        let wholePercentages = rangeDistribution.wholePercentages
 
         if statistics.a1CStatisticValue.value <= 0 {
             a1cValue = "-"
@@ -329,9 +342,12 @@ final class RootHomeStateModel: ObservableObject {
 
         updateState { state in
             state.statistics = RootHomeStatisticsState(
-                low: RootHomeMetricState(title: Texts_Common.lowStatistics, value: "\(Int(statistics.lowStatisticValue.round(toDecimalPlaces: 0)))%", valueColor: ConstantsAppColors.statisticsLow),
-                inRange: RootHomeMetricState(title: UserDefaults.standard.timeInRangeType.title, value: "\(Int(statistics.inRangeStatisticValue.round(toDecimalPlaces: 0)))%", valueColor: ConstantsAppColors.statisticsInRange),
-                high: RootHomeMetricState(title: Texts_Common.highStatistics, value: "\(Int(statistics.highStatisticValue.round(toDecimalPlaces: 0)))%", valueColor: ConstantsAppColors.statisticsHigh),
+                low: RootHomeMetricState(title: Texts_Common.lowStatistics, value: "\(wholePercentages[0])%", valueColor: ConstantsAppColors.statisticsLow),
+                inRange: RootHomeMetricState(title: UserDefaults.standard.timeInRangeType.title, value: "\(wholePercentages[1])%", valueColor: ConstantsAppColors.statisticsInRange),
+                high: RootHomeMetricState(title: Texts_Common.highStatistics, value: "\(wholePercentages[2])%", valueColor: ConstantsAppColors.statisticsHigh),
+                lowPercentage: rangeDistribution.belowPercentage,
+                inRangePercentage: rangeDistribution.inRangePercentage,
+                highPercentage: rangeDistribution.abovePercentage,
                 average: RootHomeMetricState(title: Texts_Common.averageStatistics, value: averageValue),
                 a1c: RootHomeMetricState(title: Texts_Common.a1cStatistics, value: a1cValue),
                 cv: RootHomeMetricState(title: Texts_Common.cvStatistics, value: statistics.cVStatisticValue.value > 0 ? "\(Int(statistics.cVStatisticValue.round(toDecimalPlaces: 0)))%" : "-"),

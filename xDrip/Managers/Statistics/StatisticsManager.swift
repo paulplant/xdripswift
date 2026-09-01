@@ -411,8 +411,9 @@ public final class StatisticsManager: @unchecked Sendable {
 
     private func makeRootStatistics(fromDate: Date, toDate: Date?) -> Statistics {
         let isMgDl = UserDefaults.standard.bloodGlucoseUnitIsMgDl
-        let lowLimitForTIR = UserDefaults.standard.timeInRangeType.lowerLimit
-        let highLimitForTIR = UserDefaults.standard.timeInRangeType.higherLimit
+        let timeInRangeType = UserDefaults.standard.timeInRangeType
+        let lowLimitForTIR = timeInRangeType.lowerLimit
+        let highLimitForTIR = timeInRangeType.higherLimit
         let samples = fetchSamples(fromDate: fromDate, toDate: toDate ?? Date())
 
         guard !samples.isEmpty else {
@@ -429,6 +430,15 @@ public final class StatisticsManager: @unchecked Sendable {
             )
         }
 
+        // TIR must use the same stored, cadence-approved samples as Statistics and reports. The
+        // additional 4.5-minute filter below is retained only for the legacy Home average/A1C/CV
+        // calculation; applying it to TIR made otherwise identical app surfaces count different
+        // readings.
+        let rangeDistribution = GlucoseRangeDistribution(
+            values: samples.map(\.valueMgDl),
+            lowLimit: timeInRangeType.lowerLimitInMgDl,
+            highLimit: timeInRangeType.higherLimitInMgDl
+        )
         let filteredValues = filteredRootStatisticValues(samples: samples, isMgDl: isMgDl)
         guard !filteredValues.isEmpty else {
             return Statistics(
@@ -444,10 +454,6 @@ public final class StatisticsManager: @unchecked Sendable {
             )
         }
 
-        let lowCount = filteredValues.lazy.filter { $0 < lowLimitForTIR }.count
-        let highCount = filteredValues.lazy.filter { $0 > highLimitForTIR }.count
-        let lowStatisticValue = Double((lowCount * 200) / (filteredValues.count * 2))
-        let highStatisticValue = Double((highCount * 200) / (filteredValues.count * 2))
         let averageStatisticValue = filteredValues.reduce(0, +) / Double(filteredValues.count)
         let a1CStatisticValue = Self.a1cValue(forAverage: averageStatisticValue, isMgDl: isMgDl)
         let cVStatisticValue = Self.coefficientOfVariation(values: filteredValues, average: averageStatisticValue)
@@ -458,9 +464,9 @@ public final class StatisticsManager: @unchecked Sendable {
         numberOfDaysUsed += (numberOfDaysUsed == 89 ? 1 : 0)
 
         return Statistics(
-            lowStatisticValue: lowStatisticValue,
-            highStatisticValue: highStatisticValue,
-            inRangeStatisticValue: 100 - lowStatisticValue - highStatisticValue,
+            lowStatisticValue: rangeDistribution.belowPercentage,
+            highStatisticValue: rangeDistribution.abovePercentage,
+            inRangeStatisticValue: rangeDistribution.inRangePercentage,
             averageStatisticValue: averageStatisticValue,
             a1CStatisticValue: a1CStatisticValue,
             cVStatisticValue: cVStatisticValue,
@@ -514,16 +520,17 @@ public final class StatisticsManager: @unchecked Sendable {
             )
         }
 
-        let lowCount = values.lazy.filter { $0 < lowLimitForTIR }.count
-        let highCount = values.lazy.filter { $0 > highLimitForTIR }.count
-        let lowStatisticValue = Double((lowCount * 200) / (values.count * 2))
-        let highStatisticValue = Double((highCount * 200) / (values.count * 2))
+        let rangeDistribution = GlucoseRangeDistribution(
+            values: values,
+            lowLimit: lowLimitForTIR,
+            highLimit: highLimitForTIR
+        )
         let averageStatisticValue = values.reduce(0, +) / Double(values.count)
 
         return Statistics(
-            lowStatisticValue: lowStatisticValue,
-            highStatisticValue: highStatisticValue,
-            inRangeStatisticValue: 100 - lowStatisticValue - highStatisticValue,
+            lowStatisticValue: rangeDistribution.belowPercentage,
+            highStatisticValue: rangeDistribution.abovePercentage,
+            inRangeStatisticValue: rangeDistribution.inRangePercentage,
             averageStatisticValue: averageStatisticValue,
             a1CStatisticValue: Self.a1cValue(forAverage: averageStatisticValue, isMgDl: isMgDl),
             cVStatisticValue: Self.coefficientOfVariation(values: values, average: averageStatisticValue),

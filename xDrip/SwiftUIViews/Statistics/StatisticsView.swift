@@ -374,7 +374,9 @@ private struct StatisticsRangeCard: View {
     var body: some View {
         StatisticsCard {
             GeometryReader { geometry in
-                HStack(spacing: 1) {
+                // Exact normalized widths already fill the complete bar. Adding inter-segment
+                // spacing would make the rendered distribution wider than 100%.
+                HStack(spacing: 0) {
                     ForEach(buckets) { bucket in
                         Rectangle()
                             .fill(bucket.color)
@@ -403,7 +405,7 @@ private struct StatisticsRangeCard: View {
                                     .lineLimit(1)
                             }
                         }
-                        Text(GlucoseReportFormatting.percentage(bucket.percentage))
+                        Text(GlucoseReportFormatting.percentage(bucket.wholePercentage))
                             .font(.callout.weight(.bold))
                             .foregroundStyle(Color(.colorPrimary))
                             .monospacedDigit()
@@ -415,8 +417,7 @@ private struct StatisticsRangeCard: View {
     }
 
     private func segmentWidth(for bucket: GlucoseReportRangeBucket, totalWidth: CGFloat) -> CGFloat {
-        guard bucket.percentage > 0 else { return 0 }
-        return max(2, totalWidth * CGFloat(bucket.percentage / 100))
+        totalWidth * CGFloat(max(0, min(100, bucket.percentage)) / 100)
     }
 
     private func shouldShowRangeDetail(for bucket: GlucoseReportRangeBucket) -> Bool {

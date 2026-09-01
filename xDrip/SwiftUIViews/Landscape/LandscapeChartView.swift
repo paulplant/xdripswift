@@ -865,11 +865,11 @@ private struct LandscapeTIRBadge: View {
     var body: some View {
         HStack(spacing: isExpandedIPad ? 22 : 8) {
             HStack(spacing: isExpandedIPad ? 12 : 0) {
-                percentageText(lowPercentage, ConstantsAppColors.statisticsLow)
+                percentageText(wholePercentages[0], ConstantsAppColors.statisticsLow)
                 separator
-                percentageText(inRangePercentage, ConstantsAppColors.statisticsInRange, weight: .bold)
+                percentageText(wholePercentages[1], ConstantsAppColors.statisticsInRange, weight: .bold)
                 separator
-                percentageText(highPercentage, ConstantsAppColors.statisticsHigh)
+                percentageText(wholePercentages[2], ConstantsAppColors.statisticsHigh)
             }
             .fixedSize(horizontal: true, vertical: false)
 
@@ -905,7 +905,7 @@ private struct LandscapeTIRBadge: View {
         }
         .frame(height: isExpandedIPad ? 48 : 40)
         .accessibilityLabel(rangeMode.title)
-        .accessibilityValue("\(Texts_Common.lowStatistics) \(percentage(lowPercentage)), \(Texts_Common.inRangeStatistics) \(percentage(inRangePercentage)), \(Texts_Common.highStatistics) \(percentage(highPercentage))")
+        .accessibilityValue("\(Texts_Common.lowStatistics) \(percentage(wholePercentages[0])), \(Texts_Common.inRangeStatistics) \(percentage(wholePercentages[1])), \(Texts_Common.highStatistics) \(percentage(wholePercentages[2]))")
     }
 
     private var tirBar: some View {
@@ -951,16 +951,30 @@ private struct LandscapeTIRBadge: View {
         return points.filter { $0.date <= now }
     }
 
+    /// One shared calculation supplies the exact bar geometry, visible whole-number labels and
+    /// accessibility value. Previously those three percentages were rounded independently.
+    private var rangeDistribution: GlucoseRangeDistribution {
+        GlucoseRangeDistribution(
+            values: analysisPoints.map(\.valueMgDl),
+            lowLimit: rangeMode.lowLimitMgDl,
+            highLimit: rangeMode.highLimitMgDl
+        )
+    }
+
     private var lowPercentage: Double {
-        percentage { $0 < rangeMode.lowLimitMgDl }
+        rangeDistribution.belowPercentage
     }
 
     private var inRangePercentage: Double {
-        percentage { $0 >= rangeMode.lowLimitMgDl && $0 <= rangeMode.highLimitMgDl }
+        rangeDistribution.inRangePercentage
     }
 
     private var highPercentage: Double {
-        percentage { $0 > rangeMode.highLimitMgDl }
+        rangeDistribution.abovePercentage
+    }
+
+    private var wholePercentages: [Int] {
+        rangeDistribution.wholePercentages
     }
 
     private var separator: some View {
@@ -970,23 +984,15 @@ private struct LandscapeTIRBadge: View {
             .padding(.horizontal, 4)
     }
 
-    private func percentage(_ matches: (Double) -> Bool) -> Double {
-        guard !analysisPoints.isEmpty else { return 0 }
-
-        let count = analysisPoints.filter { matches($0.valueMgDl) }.count
-
-        return Double(count) / Double(analysisPoints.count) * 100
-    }
-
     private func segmentWidth(for percentage: Double, totalWidth: CGFloat) -> CGFloat {
         validLandscapeDimension(totalWidth) * CGFloat(max(0, min(100, percentage)) / 100)
     }
 
-    private func percentage(_ value: Double) -> String {
-        "\(Int(value.round(toDecimalPlaces: 0)))%"
+    private func percentage(_ value: Int) -> String {
+        "\(value)%"
     }
 
-    private func percentageText(_ value: Double, _ color: Color, weight: Font.Weight = .regular) -> some View {
+    private func percentageText(_ value: Int, _ color: Color, weight: Font.Weight = .regular) -> some View {
         Text(percentage(value))
             .font(.system(size: 15, weight: weight))
             .foregroundStyle(color)

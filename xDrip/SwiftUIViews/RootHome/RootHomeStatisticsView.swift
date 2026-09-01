@@ -53,9 +53,9 @@ struct RootHomeStatisticsView: View {
             VStack(spacing: pieSpacing) {
                 ZStack {
                     RootHomePieChartView(
-                        low: state.low.percentValue,
-                        inRange: state.inRange.percentValue,
-                        high: state.high.percentValue
+                        low: state.lowPercentage,
+                        inRange: state.inRangePercentage,
+                        high: state.highPercentage
                     )
 
                     if state.showsActivityIndicator {
@@ -221,11 +221,5 @@ struct RootHomePieSlice: Shape {
         path.closeSubpath()
 
         return path
-    }
-}
-
-private extension RootHomeMetricState {
-    var percentValue: Double {
-        Double(value.replacingOccurrences(of: "%", with: "")) ?? 0
     }
 }
