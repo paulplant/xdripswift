@@ -42,6 +42,7 @@ final class LandscapeChartStateModel: ObservableObject {
     @Published var displayedDate = Date().toMidnight()
     @Published var chartState = GlucoseChartState.empty(startDate: Date().toMidnight(), endDate: Date().toMidnight().addingTimeInterval(.hours(24) - 1))
     @Published var baseline = StatisticsManager.LandscapeBaseline.empty
+    @Published var rangeSummary = GlucoseClinicalRangeSummary.empty
     @Published var loopalyzerSnapshot: StatisticsManager.LandscapeLoopalyzerSnapshot?
     @Published private(set) var comparisonPeriod: LandscapeComparisonPeriod
     let showsAIDCharts: Bool
@@ -192,6 +193,7 @@ final class LandscapeChartStateModel: ObservableObject {
             completion(LandscapeDaySnapshot(
                 chartState: loadedChartState,
                 baseline: loadedAnalytics.baseline,
+                rangeSummary: loadedAnalytics.rangeSummary,
                 loopalyzerSnapshot: loadedAnalytics.loopalyzer
             ))
         }
@@ -229,6 +231,7 @@ final class LandscapeChartStateModel: ObservableObject {
         displayedDate = cacheKey.date
         chartState = snapshot.chartState
         baseline = snapshot.baseline
+        rangeSummary = snapshot.rangeSummary
         loopalyzerSnapshot = snapshot.loopalyzerSnapshot
         prefetchAdjacentDates(around: cacheKey.date, comparisonPeriod: comparisonPeriod)
     }
@@ -274,6 +277,7 @@ private struct LandscapeSnapshotCacheKey: Hashable {
 private struct LandscapeDaySnapshot {
     let chartState: GlucoseChartState
     let baseline: StatisticsManager.LandscapeBaseline
+    let rangeSummary: GlucoseClinicalRangeSummary
     let loopalyzerSnapshot: StatisticsManager.LandscapeLoopalyzerSnapshot?
 }
 
@@ -409,8 +413,7 @@ struct LandscapeChartView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             LandscapeTIRBadge(
-                chartState: stateModel.chartState,
-                referenceDate: stateModel.displayedDate,
+                rangeSummary: stateModel.rangeSummary,
                 isExpandedIPad: presentation == .expandedIPad
             )
         }
@@ -836,28 +839,10 @@ private struct LandscapeTIRBadge: View {
             }
         }
 
-        var lowLimitMgDl: Double {
-            switch self {
-            case .timeInRange:
-                return GlucoseReportClinicalConstants.timeInRangeLowMgDl
-            case .timeInTightRange:
-                return GlucoseReportClinicalConstants.timeInTightRangeLowMgDl
-            }
-        }
-
-        var highLimitMgDl: Double {
-            switch self {
-            case .timeInRange:
-                return GlucoseReportClinicalConstants.timeInRangeHighMgDl
-            case .timeInTightRange:
-                return GlucoseReportClinicalConstants.timeInTightRangeHighMgDl
-            }
-        }
-
     }
 
-    let chartState: GlucoseChartState
-    let referenceDate: Date
+    /// Both distributions come from StatisticsManager's validated selected-calendar-day samples.
+    let rangeSummary: GlucoseClinicalRangeSummary
     var isExpandedIPad = false
 
     @State private var rangeMode = RangeMode.timeInRange
@@ -935,30 +920,15 @@ private struct LandscapeTIRBadge: View {
         )
     }
 
-    private var analysisPoints: [LandscapeGlucosePoint] {
-        let points = zip(chartState.bgReadingDates, chartState.bgReadingValues)
-            .map { date, value in
-                let components = Calendar.current.dateComponents([.hour, .minute], from: date)
-                let minute = (components.hour ?? 0) * 60 + (components.minute ?? 0)
-                return LandscapeGlucosePoint(date: date, minuteOfDay: minute, valueMgDl: value, isLatest: false)
-            }
-            .sorted { $0.date < $1.date }
-
-        guard Calendar.current.isDateInToday(referenceDate) else { return points }
-
-        let now = Date()
-
-        return points.filter { $0.date <= now }
-    }
-
     /// One shared calculation supplies the exact bar geometry, visible whole-number labels and
-    /// accessibility value. Previously those three percentages were rounded independently.
+    /// accessibility value. StatisticsManager has already limited it to the selected day.
     private var rangeDistribution: GlucoseRangeDistribution {
-        GlucoseRangeDistribution(
-            values: analysisPoints.map(\.valueMgDl),
-            lowLimit: rangeMode.lowLimitMgDl,
-            highLimit: rangeMode.highLimitMgDl
-        )
+        switch rangeMode {
+        case .timeInRange:
+            return rangeSummary.timeInRange
+        case .timeInTightRange:
+            return rangeSummary.timeInTightRange
+        }
     }
 
     private var lowPercentage: Double {

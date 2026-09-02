@@ -16,9 +16,11 @@ struct StatisticsView: View {
     @State private var isShowingReportGenerator = false
     @State private var selectedPage: StatisticsPage = .cgmData
     private let statisticsManager: StatisticsManager
+    private let refreshRevision: Int
 
-    init(statisticsManager: StatisticsManager) {
+    init(statisticsManager: StatisticsManager, refreshRevision: Int = 0) {
         self.statisticsManager = statisticsManager
+        self.refreshRevision = refreshRevision
         _viewModel = StateObject(wrappedValue: StatisticsViewModel(statisticsManager: statisticsManager))
     }
 
@@ -50,7 +52,9 @@ struct StatisticsView: View {
             GenerateReportView(statisticsManager: statisticsManager)
                 .ipadLargeSheet(width: 980, height: 840)
         }
-        .task {
+        .task(id: refreshRevision) {
+            // The manager invalidates cached calculations after Core Data changes. Re-run the view
+            // request as well so a Statistics tab that remains open cannot retain the old result.
             viewModel.load()
         }
     }
@@ -685,7 +689,7 @@ private struct StatisticsDailyPatternCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            StatisticsSection(title: Texts_Common.statisticsDailyPattern, detail: String(format: Texts_Common.statisticsAverageFormat, GlucoseReportFormatting.percentage(averageInRangePercentage))) {
+            StatisticsSection(title: Texts_Common.statisticsDailyPattern, detail: String(format: Texts_Common.statisticsAverageFormat, GlucoseReportFormatting.percentage(overallInRangePercentage))) {
                 StatisticsCard {
                     Chart {
                     ForEach(analytics.dailySummaries) { summary in
@@ -742,10 +746,11 @@ private struct StatisticsDailyPatternCard: View {
         }
     }
 
-    private var averageInRangePercentage: Double {
-        let validSummaries = analytics.dailySummaries.filter { $0.sampleCount > 0 }
-        guard !validSummaries.isEmpty else { return 0 }
-        return validSummaries.map(\.targetPercentage).reduce(0, +) / Double(validSummaries.count)
+    private var overallInRangePercentage: Double {
+        // Weight the summary with every sample in the selected report period, exactly like the TIR
+        // card above. Averaging daily percentages equally produces a different answer whenever one
+        // day has less CGM coverage than another.
+        analytics.rangeDistribution.target
     }
 
     private var xAxisDates: [Date] {

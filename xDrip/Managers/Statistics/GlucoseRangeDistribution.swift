@@ -126,3 +126,27 @@ struct GlucoseRangeDistribution: Equatable {
         ProportionalIntegerAllocator.allocate(percentages, total: total)
     }
 }
+
+/// Standard and tight clinical distributions calculated from one canonical glucose sample set.
+///
+/// Landscape presents both modes from the same selected calendar day. Keeping the pair together
+/// prevents either mode from falling back to the chart renderer's deliberately wider cache window.
+struct GlucoseClinicalRangeSummary: Equatable {
+    let timeInRange: GlucoseRangeDistribution
+    let timeInTightRange: GlucoseRangeDistribution
+
+    init(valuesMgDl: [Double]) {
+        timeInRange = GlucoseRangeDistribution(
+            values: valuesMgDl,
+            lowLimit: GlucoseReportClinicalConstants.timeInRangeLowMgDl,
+            highLimit: GlucoseReportClinicalConstants.timeInRangeHighMgDl
+        )
+        timeInTightRange = GlucoseRangeDistribution(
+            values: valuesMgDl,
+            lowLimit: GlucoseReportClinicalConstants.timeInTightRangeLowMgDl,
+            highLimit: GlucoseReportClinicalConstants.timeInTightRangeHighMgDl
+        )
+    }
+
+    static let empty = GlucoseClinicalRangeSummary(valuesMgDl: [])
+}
