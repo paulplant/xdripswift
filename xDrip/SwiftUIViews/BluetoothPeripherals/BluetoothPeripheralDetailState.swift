@@ -715,10 +715,10 @@ private extension BluetoothPeripheralDetailState {
         }
     }
 
-    func batterySymbol(voltageB: Int32) -> BluetoothPeripheralDetailSymbol? {
-        // All direct Dexcom generations use the same Voltage B presentation for now. Keeping the
-        // boundary in `DexcomBatteryStatus` ensures the settings view and Activity Log agree.
-        switch DexcomBatteryStatus(voltageB: Int(voltageB)) {
+    func batterySymbol(voltageB: Int32, family: DexcomBatteryFamily) -> BluetoothPeripheralDetailSymbol? {
+        // The symbol is only a presentation of the family-aware Voltage B assessment. It does not
+        // replace the independent status byte or sensor algorithm state reported by Dexcom.
+        switch DexcomBatteryStatus(voltageB: Int(voltageB), family: family) {
         case .unknown:
             return nil
         case .red:
@@ -1930,7 +1930,8 @@ private extension BluetoothPeripheralDetailState {
             id: "dexcom-g5-battery",
             rowIDPrefix: "dexcom-g5",
             voltageA: dexcomG5.voltageA,
-            voltageB: dexcomG5.voltageB
+            voltageB: dexcomG5.voltageB,
+            family: .g5
         ))
 
         if dexcomG5.isAnubis {
@@ -2057,11 +2058,17 @@ private extension BluetoothPeripheralDetailState {
 
     /// Builds the identical voltage presentation for G5, G6, and G7-family records. Callers supply
     /// stable row identifiers so this common builder does not alter the established G6 view state.
-    func makeDexcomBatterySection(id: String, rowIDPrefix: String, voltageA: Int32, voltageB: Int32) -> BluetoothPeripheralDetailSection {
+    func makeDexcomBatterySection(
+        id: String,
+        rowIDPrefix: String,
+        voltageA: Int32,
+        voltageB: Int32,
+        family: DexcomBatteryFamily
+    ) -> BluetoothPeripheralDetailSection {
         BluetoothPeripheralDetailSection(
             id: id,
             title: Texts_BluetoothPeripheralView.battery,
-            headerSymbol: batterySymbol(voltageB: voltageB),
+            headerSymbol: batterySymbol(voltageB: voltageB, family: family),
             rows: makeDexcomBatteryRows(rowIDPrefix: rowIDPrefix, voltageA: voltageA, voltageB: voltageB)
         )
     }
@@ -2293,7 +2300,8 @@ private extension BluetoothPeripheralDetailState {
             id: "dexcom-g7-battery",
             rowIDPrefix: "dexcom-g7",
             voltageA: dexcomG7.voltageA,
-            voltageB: dexcomG7.voltageB
+            voltageB: dexcomG7.voltageB,
+            family: .g7
         ))
 
         if !dexcomG7.useOtherApp {

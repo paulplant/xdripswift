@@ -1358,7 +1358,17 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
 
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
-                    let batteryInfo = TransmitterBatteryInfo.DexcomG5(voltageA: batteryStatusRxMessage.voltageA, voltageB: batteryStatusRxMessage.voltageB, resist: batteryStatusRxMessage.resist, runtime: batteryStatusRxMessage.runtime, temperature: batteryStatusRxMessage.temperature)
+                    // G5, G6 and ONE share the established long-life transmitter battery limits.
+                    // Carry that family with the saved measurement so downstream alerts cannot
+                    // accidentally interpret these voltages as disposable G7-family values.
+                    let batteryInfo = TransmitterBatteryInfo.dexcom(
+                        family: .g5,
+                        voltageA: batteryStatusRxMessage.voltageA,
+                        voltageB: batteryStatusRxMessage.voltageB,
+                        resist: batteryStatusRxMessage.resist,
+                        runtime: batteryStatusRxMessage.runtime,
+                        temperature: batteryStatusRxMessage.temperature
+                    )
                     self.cGMG5TransmitterDelegate?.received(transmitterBatteryInfo: batteryInfo, cGMG5Transmitter: self)
                     var empty: [GlucoseData] = []
                     self.cgmTransmitterDelegate?.cgmTransmitterInfoReceived(glucoseData: &empty, transmitterBatteryInfo: batteryInfo, sensorAge: nil)

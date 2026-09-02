@@ -644,7 +644,7 @@ class Trace {
                             // if needed additional specific info can be added
                             traceInfo.appendStringAndNewLine("        Voltage A: " + dexcomG5.voltageA.description + "0mV")
                             traceInfo.appendStringAndNewLine("        Voltage B: " + dexcomG5.voltageB.description + "0mV")
-                            traceInfo.appendStringAndNewLine("        Battery status: " + DexcomBatteryStatus(voltageB: Int(dexcomG5.voltageB)).rawValue)
+                            traceInfo.appendStringAndNewLine("        Battery status: " + DexcomBatteryStatus(voltageB: Int(dexcomG5.voltageB), family: .g5).rawValue)
                             
                         }
                         
@@ -728,7 +728,7 @@ class Trace {
                             traceInfo.appendStringAndNewLine("        Voltage B: " + DexcomBatteryStatus.millivolts(fromRawVoltage: Int(dexcomG7.voltageB)).description + " mV")
                             traceInfo.appendStringAndNewLine("        Battery resistance: " + dexcomG7.batteryResist.description)
                             traceInfo.appendStringAndNewLine("        Battery last read: " + (dexcomG7.batteryLastReadDate?.toStringForTrace(timeStyle: .short, dateStyle: .medium) ?? "nil"))
-                            traceInfo.appendStringAndNewLine("        Battery classification: " + DexcomBatteryStatus(voltageB: Int(dexcomG7.voltageB)).rawValue)
+                            traceInfo.appendStringAndNewLine("        Battery classification: " + DexcomBatteryStatus(voltageB: Int(dexcomG7.voltageB), family: .g7).rawValue)
                             traceInfo.appendStringAndNewLine("        Connection mode: " + TroubleshootingDexcomConnectionMode(useOtherApp: dexcomG7.useOtherApp).name)
 
                             let bluetoothSlot = dexcomG7.effectiveDexcomG7BluetoothSlot()

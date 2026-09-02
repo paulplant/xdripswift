@@ -147,8 +147,19 @@ public class AlertManager: NSObject {
                 // create helper to check and fire alerts
                 let checkAlertAndFireHelper = { (_ alertKind: AlertKind) -> Bool in self.checkAlertAndFire(alertKind: alertKind, lastBgReading: lastBgReading, lastButOneBgReading: lastButOneBgReading, lastCalibration: lastCalibration, transmitterBatteryInfo: transmitterBatteryInfo) }
                 
-                // specify the order in which alerts should be checked and group those with related snoozes
-                let alertGroupsByPreference: [[AlertKind]] = [[.fastdrop], [.verylow, .low], [.fastrise], [.veryhigh, .high], [.calibration], [.batterylow], [.phonebatterylow]]
+                // Specify the order in which alerts should be checked and group those with related snoozes.
+                var alertGroupsByPreference: [[AlertKind]] = [[.fastdrop], [.verylow, .low], [.fastrise], [.veryhigh, .high], [.calibration]]
+
+                // Select exactly one persisted battery configuration from the received payload.
+                // The firing path therefore reads the G7 value from the G7 AlertEntry, the G5 value
+                // from the G5 AlertEntry, and a percentage only from the generic AlertEntry. Do not
+                // use the configured transmitter type here: a device change can temporarily leave
+                // that selection and the last received battery packet out of sync.
+                if let batteryAlertKind = AlertKind.batteryAlertKind(for: transmitterBatteryInfo) {
+                    alertGroupsByPreference.append([batteryAlertKind])
+                }
+
+                alertGroupsByPreference.append([.phonebatterylow])
                 
                 // only raise first alert group that's been tripped
                 // check the result to see if it's an alert kind that creates an immediate notification that contains the reading value
@@ -511,7 +522,7 @@ public class AlertManager: NSObject {
             }
         }
         
-        return PickerViewData(withMainTitle: alertKind.alertTitle(), withSubTitle: Texts_Alerts.selectSnoozeTime, withData: ConstantsAlerts.snoozeValueStrings, selectedRow: defaultRow, withPriority: .high, actionButtonText: Texts_Alerts.snooze, cancelButtonText: Texts_Common.Cancel, isFullScreen: true,
+        return PickerViewData(withMainTitle: alertKind.configurationTitle(), withSubTitle: Texts_Alerts.selectSnoozeTime, withData: ConstantsAlerts.snoozeValueStrings, selectedRow: defaultRow, withPriority: .high, actionButtonText: Texts_Alerts.snooze, cancelButtonText: Texts_Common.Cancel, isFullScreen: true,
                               onActionClick: {
                                   (snoozeIndex: Int) in
             
@@ -617,16 +628,12 @@ public class AlertManager: NSObject {
     public func enabledAlertKinds() -> [AlertKind] {
         let alertEntriesPerAlertKind: [[AlertEntry]] = alertEntriesAccessor.getAllEntriesPerAlertKind(alertTypesAccessor: alertTypesAccessor)
         var orderedEnabledKinds: [AlertKind] = []
-        let sectionCount = AlertKind.allCases.count
-
-        for section in 0..<sectionCount {
-            // First find the AlertKind index in allCases,
-            // ensure there are entries for it, and check if the first entry is enabled (not disabled).
-            if let alertKind = AlertKind(forSection: section),
-               alertKind.supportsSnooze(),
-               let index = AlertKind.allCases.firstIndex(of: alertKind),
-               index < alertEntriesPerAlertKind.count,
-               let firstEntry = alertEntriesPerAlertKind[index].first,
+        // Use the same active-family presentation order as Alarm Settings. Hidden battery family
+        // configurations must not reappear as duplicate rows in the Snooze screen.
+        for alertKind in AlertKind.visibleAlertKinds(for: UserDefaults.standard.cgmTransmitterType) {
+            if alertKind.supportsSnooze(),
+               alertKind.rawValue < alertEntriesPerAlertKind.count,
+               let firstEntry = alertEntriesPerAlertKind[alertKind.rawValue].first,
                !firstEntry.isDisabled {
                 orderedEnabledKinds.append(alertKind)
             }

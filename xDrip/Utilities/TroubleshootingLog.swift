@@ -330,16 +330,17 @@ struct TroubleshootingDexcomContext: Equatable {
         bluetoothChannel: TroubleshootingDexcomBluetoothChannel,
         sensorCode: String?,
         voltageA: Int,
-        voltageB: Int
+        voltageB: Int,
+        batteryFamily: DexcomBatteryFamily
     ) {
         connectionMode = TroubleshootingDexcomConnectionMode(useOtherApp: useOtherApp)
         self.bluetoothChannel = bluetoothChannel
         self.sensorCode = sensorCode
 
-        // G5, G6 and G7-family transmitters store both voltages in the same 10 mV unit. Reuse the
-        // common Voltage B classification and perform the conversion here so shared reports cannot
-        // accidentally present a raw value such as 267 as 267 mV.
-        let status = DexcomBatteryStatus(voltageB: voltageB)
+        // Every Dexcom family stores both voltages in the same 10 mV unit, but the useful Voltage B
+        // boundaries differ. Require the caller to identify the family so a G7 value such as 267
+        // cannot be misreported using the much higher G5/G6 thresholds.
+        let status = DexcomBatteryStatus(voltageB: voltageB, family: batteryFamily)
         if status == .unknown || voltageA <= 0 {
             batteryDescription = "Waiting for data"
         } else {
@@ -2268,6 +2269,8 @@ struct TroubleshootingLogReportBuilder {
         case .missedreading: return "Missed reading"
         case .calibration: return "Calibration"
         case .batterylow: return "Transmitter battery"
+        case .dexcomG5BatteryLow: return "Dexcom G5/G6 battery"
+        case .dexcomG7BatteryLow: return "Dexcom G7 battery"
         case .fastdrop: return "Fast drop"
         case .fastrise: return "Fast rise"
         case .phonebatterylow: return "Phone battery"

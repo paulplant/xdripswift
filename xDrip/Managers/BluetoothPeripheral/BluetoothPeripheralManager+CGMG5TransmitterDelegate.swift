@@ -21,7 +21,7 @@ extension BluetoothPeripheralManager: CGMG5TransmitterDelegate {
         
         guard let dexcomG5 = getDexcomG5(cGMG5Transmitter: cGMG5Transmitter) else {return}
         
-        guard case .DexcomG5(let voltA, let voltB, let res, let runt, let temp) = transmitterBatteryInfo else {return}
+        guard case .dexcom(family: .g5, let voltA, let voltB, let res, let runt, let temp) = transmitterBatteryInfo else {return}
         
         dexcomG5.batteryResist = Int32(res)
         

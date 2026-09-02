@@ -1277,20 +1277,22 @@ final class TroubleshootingLogTests: XCTestCase {
             bluetoothChannel: .smartWatch,
             sensorCode: "6772",
             voltageA: 288,
-            voltageB: 267
+            voltageB: 267,
+            batteryFamily: .g7
         )
 
         XCTAssertEqual(context.connectionMode, .primary)
         XCTAssertEqual(context.bluetoothChannel, .smartWatch)
         XCTAssertEqual(context.sensorCode, "6772")
-        XCTAssertEqual(context.batteryDescription, "Red, Voltage A 2880 mV, Voltage B 2670 mV")
+        XCTAssertEqual(context.batteryDescription, "Green, Voltage A 2880 mV, Voltage B 2670 mV")
 
         let waitingContext = TroubleshootingDexcomContext(
             useOtherApp: true,
             bluetoothChannel: .mobileApp,
             sensorCode: nil,
             voltageA: 0,
-            voltageB: 0
+            voltageB: 0,
+            batteryFamily: .g5
         )
         XCTAssertEqual(waitingContext.connectionMode, .coexistence)
         XCTAssertEqual(waitingContext.batteryDescription, "Waiting for data")

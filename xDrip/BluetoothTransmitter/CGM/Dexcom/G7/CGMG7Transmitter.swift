@@ -1464,7 +1464,8 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
             // delegate receives the same timestamp for Core Data so runtime scheduling and the
             // saved disposable-sensor record cannot disagree about when the next query is due.
             batteryLastReadDate = readAt
-            let batteryInfo = TransmitterBatteryInfo.DexcomG5(
+            let batteryInfo = TransmitterBatteryInfo.dexcom(
+                family: .g7,
                 voltageA: message.voltageA,
                 voltageB: message.voltageB,
                 resist: message.resistance,

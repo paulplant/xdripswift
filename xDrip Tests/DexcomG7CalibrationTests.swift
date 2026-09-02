@@ -361,12 +361,127 @@ final class DexcomG7CalibrationTests: XCTestCase {
         XCTAssertEqual(DexcomBatteryStatus.millivolts(fromRawVoltage: message.voltageB), 2_670)
     }
 
-    func testG7BatteryClassificationUsesExistingG6Boundaries() {
-        XCTAssertEqual(DexcomBatteryStatus(voltageB: 0), .unknown)
-        XCTAssertEqual(DexcomBatteryStatus(voltageB: 269), .red)
-        XCTAssertEqual(DexcomBatteryStatus(voltageB: 270), .yellow)
-        XCTAssertEqual(DexcomBatteryStatus(voltageB: 279), .yellow)
-        XCTAssertEqual(DexcomBatteryStatus(voltageB: 280), .green)
+    func testDexcomBatteryClassificationUsesFamilyBoundaries() {
+        // G5/G6/ONE retain their existing presentation without any threshold migration.
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 0, family: .g5), .unknown)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 269, family: .g5), .red)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 270, family: .g5), .yellow)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 279, family: .g5), .yellow)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 280, family: .g5), .green)
+
+        // G7/ONE+/Stelo use the initial family field mapping. Boundaries are exclusive, matching
+        // the long-standing G5 implementation: exactly 215 is yellow and exactly 250 is green.
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 0, family: .g7), .unknown)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 214, family: .g7), .red)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 215, family: .g7), .yellow)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 249, family: .g7), .yellow)
+        XCTAssertEqual(DexcomBatteryStatus(voltageB: 250, family: .g7), .green)
+    }
+
+    func testDexcomBatteryInfoPreservesFamilyAndReadsLegacyG5Data() throws {
+        let g7 = TransmitterBatteryInfo.dexcom(
+            family: .g7,
+            voltageA: 282,
+            voltageB: 204,
+            resist: 8_192,
+            runtime: 0,
+            temperature: 0
+        )
+        let savedG7 = g7.toData()
+        XCTAssertEqual(savedG7.first, 3)
+        XCTAssertEqual(TransmitterBatteryInfo(data: savedG7), g7)
+
+        // Type 1 is the historical persisted representation. It must continue to decode as the
+        // G5 battery family after the enum begins carrying family explicitly.
+        var legacy = savedG7
+        legacy[0] = 1
+        XCTAssertEqual(
+            TransmitterBatteryInfo(data: legacy),
+            .dexcom(family: .g5, voltageA: 282, voltageB: 204, resist: 8_192, runtime: 0, temperature: 0)
+        )
+    }
+
+    func testBatteryAlertsAcceptOnlyTheirOwnFamily() {
+        let percentage = TransmitterBatteryInfo.percentage(percentage: 18)
+        let g5 = TransmitterBatteryInfo.dexcom(
+            family: .g5,
+            voltageA: 290,
+            voltageB: 269,
+            resist: 0,
+            runtime: 0,
+            temperature: 0
+        )
+        let g7 = TransmitterBatteryInfo.dexcom(
+            family: .g7,
+            voltageA: 282,
+            voltageB: 204,
+            resist: 8_192,
+            runtime: 0,
+            temperature: 0
+        )
+
+        XCTAssertEqual(AlertKind.batterylow.matchingBatteryLevel(from: percentage), 18)
+        XCTAssertNil(AlertKind.batterylow.matchingBatteryLevel(from: g5))
+        XCTAssertNil(AlertKind.batterylow.matchingBatteryLevel(from: g7))
+        XCTAssertEqual(AlertKind.dexcomG5BatteryLow.matchingBatteryLevel(from: g5), 269)
+        XCTAssertNil(AlertKind.dexcomG5BatteryLow.matchingBatteryLevel(from: g7))
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.matchingBatteryLevel(from: g7), 204)
+        XCTAssertNil(AlertKind.dexcomG7BatteryLow.matchingBatteryLevel(from: g5))
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.defaultAlertValue(), 215)
+    }
+
+    func testBatteryAlertRoutingSelectsThePayloadFamilyConfiguration() {
+        let percentage = TransmitterBatteryInfo.percentage(percentage: 18)
+        let g5 = TransmitterBatteryInfo.dexcom(
+            family: .g5,
+            voltageA: 290,
+            voltageB: 269,
+            resist: 0,
+            runtime: 0,
+            temperature: 0
+        )
+        let g7 = TransmitterBatteryInfo.dexcom(
+            family: .g7,
+            voltageA: 282,
+            voltageB: 204,
+            resist: 8_192,
+            runtime: 0,
+            temperature: 0
+        )
+
+        // AlertManager uses this payload-derived kind to fetch exactly one AlertEntry. This is
+        // intentionally independent of the configured CGM type during a device transition.
+        XCTAssertEqual(AlertKind.batteryAlertKind(for: percentage), .batterylow)
+        XCTAssertEqual(AlertKind.batteryAlertKind(for: g5), .dexcomG5BatteryLow)
+        XCTAssertEqual(AlertKind.batteryAlertKind(for: g7), .dexcomG7BatteryLow)
+
+        // The value is presented as mV but converted back to the raw 10 mV comparison unit.
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.displayedAlertValue(fromStoredValue: 215), 2_150)
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.storedAlertValue(fromDisplayedValue: 2_150), 215)
+        XCTAssertNil(AlertKind.dexcomG7BatteryLow.storedAlertValue(fromDisplayedValue: 2_155))
+    }
+
+    func testAlarmPresentationShowsOnlyTheConfiguredBatteryFamily() {
+        let g5Kinds = AlertKind.visibleAlertKinds(for: .dexcom)
+        let g7Kinds = AlertKind.visibleAlertKinds(for: .dexcomG7)
+        let percentageKinds = AlertKind.visibleAlertKinds(for: .Libre2)
+        let unsupportedKinds = AlertKind.visibleAlertKinds(for: .medtrumTouchCareNano)
+
+        XCTAssertEqual(g5Kinds.filter { $0.isTransmitterBatteryAlert }, [.dexcomG5BatteryLow])
+        XCTAssertEqual(g7Kinds.filter { $0.isTransmitterBatteryAlert }, [.dexcomG7BatteryLow])
+        XCTAssertEqual(percentageKinds.filter { $0.isTransmitterBatteryAlert }, [.batterylow])
+        XCTAssertTrue(unsupportedKinds.filter { $0.isTransmitterBatteryAlert }.isEmpty)
+
+        // Device alarms stay together and every internal battery kind shares one concise title.
+        XCTAssertEqual(Array(g7Kinds.suffix(3)), [.sensorTransmitterFailure, .dexcomG7BatteryLow, .phonebatterylow])
+        XCTAssertEqual(AlertKind.dexcomG5BatteryLow.alertTitle(), Texts_Alerts.batteryLowAlertTitle)
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.alertTitle(), Texts_Alerts.batteryLowAlertTitle)
+        XCTAssertEqual(AlertKind.dexcomG5BatteryLow.configurationTitle(), Texts_Alerts.batteryLowAlertTitle + " (G6)")
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.configurationTitle(), Texts_Alerts.batteryLowAlertTitle + " (G7)")
+        XCTAssertEqual(AlertKind.batterylow.configurationTitle(), Texts_Alerts.batteryLowAlertTitle)
+        XCTAssertEqual(AlertKind.dexcomG5BatteryLow.configurationFamilySuffix(), " (G6)")
+        XCTAssertEqual(AlertKind.dexcomG7BatteryLow.configurationFamilySuffix(), " (G7)")
+        XCTAssertEqual(AlertKind.batterylow.configurationFamilySuffix(), "")
     }
 
     func testG7DiagnosticRequestsUseExpectedCRCFraming() {
@@ -447,6 +562,7 @@ final class DexcomG7CalibrationTests: XCTestCase {
         ), .routineBounds)
     }
 
+    @MainActor
     func testG7PositiveReadingsRemainSuppressedUntilWarmupCompletes() {
         let requiredMinutes = ConstantsMaster.minimumSensorWarmUpRequiredInMinutesDexcomG7
 

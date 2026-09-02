@@ -80,7 +80,7 @@ extension BluetoothPeripheralManager: CGMG7TransmitterDelegate {
             bluetoothPeripheralType: .DexcomG7Type,
             transmitterID: dexcomG7.blePeripheral.name.toNilIfLength0() ?? dexcomG7.blePeripheral.transmitterId
         ) ?? .dexcomG7
-        let status = DexcomBatteryStatus(voltageB: battery.voltageB)
+        let status = DexcomBatteryStatus(voltageB: battery.voltageB, family: .g7)
         // An unavailable Voltage B remains useful in the developer trace and Core Data diagnostics,
         // but Activity Log promises a concrete green, yellow, or red result. Do not invent a public
         // battery state when the sensor returned zero or no usable voltage.

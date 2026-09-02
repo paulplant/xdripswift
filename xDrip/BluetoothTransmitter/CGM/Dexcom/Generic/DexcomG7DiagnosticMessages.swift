@@ -92,33 +92,3 @@ struct DexcomG7VersionMessage: Equatable {
         }
     }
 }
-
-/// One shared interpretation of Dexcom Voltage B for G5, G6, G7, ONE+, and Stelo.
-///
-/// The raw protocol value is expressed in 10 mV units. These boundaries intentionally reproduce
-/// the existing G6 presentation and can be adjusted centrally if G7 field experience later shows
-/// that the disposable sensors need different limits.
-enum DexcomBatteryStatus: String, Codable, Equatable {
-    case unknown
-    case red
-    case yellow
-    case green
-
-    init(voltageB: Int) {
-        // Zero means that xDrip4iOS has no usable battery response. The remaining boundaries are
-        // the existing G6 values expressed in the protocol's 10 mV storage unit.
-        if voltageB <= 0 {
-            self = .unknown
-        } else if voltageB < 270 {
-            self = .red
-        } else if voltageB < 280 {
-            self = .yellow
-        } else {
-            self = .green
-        }
-    }
-
-    static func millivolts(fromRawVoltage voltage: Int) -> Int {
-        voltage * 10
-    }
-}

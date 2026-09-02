@@ -296,7 +296,7 @@ struct SnoozeView: View {
     }
     
     private func sectionTitle(for alertKind: AlertKind) -> String {
-        return (alertKind.alertUrgencyType() == .urgent ? "\u{2757}" : "") + alertKind.alertTitle()
+        return (alertKind.alertUrgencyType() == .urgent ? "\u{2757}" : "") + alertKind.configurationTitle()
     }
     
     private func statusText(for snoozeValue: (isSnoozed: Bool, remainingSeconds: Int?)) -> String {

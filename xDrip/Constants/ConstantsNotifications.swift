@@ -14,6 +14,10 @@ enum ConstantsNotifications {
         static let missedReadingAlert = "missedReadingAlert"
         /// battery low
         static let batteryLow = "batteryLow"
+        // Family-specific identifiers prevent one Dexcom family's notification from replacing the
+        // other while collectors are being changed or saved alert state is being restored.
+        static let dexcomG5BatteryLow = "dexcomG5BatteryLow"
+        static let dexcomG7BatteryLow = "dexcomG7BatteryLow"
         /// fast drop
         static let fastDropAlert = "fastDropAlert"
         /// fast rise

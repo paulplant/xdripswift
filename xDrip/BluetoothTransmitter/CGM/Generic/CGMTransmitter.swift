@@ -297,8 +297,7 @@ enum CGMTransmitterType:String, CaseIterable {
             return ConstantsDefaultAlertLevels.defaultBatteryAlertLevelLibre2
             
         case .dexcomG7:
-            // we don't use this
-            return ConstantsDefaultAlertLevels.defaultBatteryAlertLevelDexcomG5
+            return ConstantsDefaultAlertLevels.defaultBatteryAlertLevelDexcomG7
 
         case .medtrumTouchCareNano:
             // No pump-battery surface in xDrip; reuse the generic threshold so the UI has a sane default.
@@ -324,8 +323,7 @@ enum CGMTransmitterType:String, CaseIterable {
             return "%"
             
         case .dexcomG7:
-            // we don't use this
-            return ""
+            return "voltB"
 
         case .medtrumTouchCareNano:
             return ""

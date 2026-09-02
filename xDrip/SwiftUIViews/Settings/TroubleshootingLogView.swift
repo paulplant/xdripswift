@@ -102,7 +102,8 @@ struct TroubleshootingLogView: View {
                             ),
                             sensorCode: nil,
                             voltageA: Int(dexcomG5.voltageA),
-                            voltageB: Int(dexcomG5.voltageB)
+                            voltageB: Int(dexcomG5.voltageB),
+                            batteryFamily: .g5
                         )
                     }
                     if let dexcomG7 = activePeripheral?.dexcomG7 {
@@ -113,7 +114,8 @@ struct TroubleshootingLogView: View {
                             ),
                             sensorCode: dexcomG7.sensorCode,
                             voltageA: Int(dexcomG7.voltageA),
-                            voltageB: Int(dexcomG7.voltageB)
+                            voltageB: Int(dexcomG7.voltageB),
+                            batteryFamily: .g7
                         )
                     }
                     return nil

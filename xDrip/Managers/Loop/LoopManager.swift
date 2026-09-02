@@ -195,7 +195,7 @@ enum XDripCGMMetadataBuilder {
             switch batteryInfo {
             case let .percentage(percentage):
                 return .init(value: Double(percentage), representation: "percentage", unit: "percent", observedAt: nil)
-            case let .DexcomG5(_, voltageB, _, _, _):
+            case let .dexcom(_, _, voltageB, _, _, _):
                 return .init(
                     value: Double(voltageB * 10),
                     representation: "voltage",
