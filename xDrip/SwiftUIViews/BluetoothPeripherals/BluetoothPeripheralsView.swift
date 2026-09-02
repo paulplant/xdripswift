@@ -110,6 +110,12 @@ struct BluetoothPeripheralsNavigationView: View {
 
         case let .readSuccess(display, type):
             TransmitterReadSuccessView(display: display, bluetoothPeripheralType: type)
+
+        case let .batteryHistory(peripheralObjectID):
+            BatteryHistoryView(
+                peripheralObjectID: peripheralObjectID,
+                manager: BatteryHistoryManager(coreDataManager: coreDataManager)
+            )
         }
     }
 
@@ -170,7 +176,8 @@ private struct BluetoothPeripheralDetailContainerView: View {
             },
             presentTextEntryView: router.showTextEntry,
             presentSelectionListView: router.showSelectionList,
-            presentReadSuccessView: router.showReadSuccess
+            presentReadSuccessView: router.showReadSuccess,
+            presentBatteryHistoryView: router.showBatteryHistory
         ))
     }
 

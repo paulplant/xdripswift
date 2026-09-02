@@ -74,6 +74,14 @@ class Texts_BluetoothPeripheralView {
         return NSLocalizedString("battery", tableName: filename, bundle: Bundle.main, value: "Battery", comment: "BluetoothPeripheral view, section title with battery info")
     }()
 
+    static let batteryHistory = NSLocalizedString("batteryHistory", tableName: filename, bundle: .main, value: "Battery History", comment: "Title and row that open the saved battery history chart")
+    static let batteryHistoryTransmitterID = NSLocalizedString("batteryHistoryTransmitterID", tableName: filename, bundle: .main, value: "Transmitter ID", comment: "Battery history row showing the Bluetooth device name")
+    static let batteryHistoryNoData = NSLocalizedString("batteryHistoryNoData", tableName: filename, bundle: .main, value: "No battery history", comment: "Empty-state title before any genuine battery observation is saved")
+    static let batteryHistoryBeginsAfterReading = NSLocalizedString("batteryHistoryBeginsAfterReading", tableName: filename, bundle: .main, value: "History begins after the next genuine battery reading.", comment: "Empty-state explanation for battery history")
+    static let batteryHistoryRange = NSLocalizedString("batteryHistoryRange", tableName: filename, bundle: .main, value: "Range", comment: "Label for the battery history time-range selector")
+    static let batteryHistoryRangeAccessibility = NSLocalizedString("batteryHistoryRangeAccessibility", tableName: filename, bundle: .main, value: "Battery history range", comment: "Accessibility label for the battery history time-range selector")
+    static let batteryHistoryRangeExplanation = NSLocalizedString("batteryHistoryRangeExplanation", tableName: filename, bundle: .main, value: "Fixed ranges run from now back to the selected number of days. Gaps show periods without a reading.", comment: "Explanation below the battery history chart")
+
     static let versionCode: String = {
         return NSLocalizedString("versionCode", tableName: filename, bundle: Bundle.main, value: "Version Code", comment: "Dexcom G7 family firmware compatibility version code")
     }()

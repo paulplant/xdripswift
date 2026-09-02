@@ -227,3 +227,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Condividi la connessione con un’altra app. Mantieni l’app Dexcom o CamAPS correttamente attiva in background.";
 "dexcomG7NoSensorLabelFound" = "Nella foto non è stata trovata alcuna etichetta del sensore Dexcom G7.";
 "dexcomG7InvalidSensorLabelFound" = "È stato trovato un Data Matrix, ma non era un’etichetta valida del sensore Dexcom G7.";
+
+
+/* Battery history */
+"batteryHistory" = "Cronologia batteria";
+"batteryHistoryTransmitterID" = "ID trasmettitore";
+"batteryHistoryNoData" = "Nessuna cronologia della batteria";
+"batteryHistoryBeginsAfterReading" = "La cronologia inizia dopo la prossima lettura effettiva della batteria.";
+"batteryHistoryRange" = "Intervallo";
+"batteryHistoryRangeAccessibility" = "Intervallo della cronologia batteria";
+"batteryHistoryRangeExplanation" = "Gli intervalli fissi vanno da ora al numero di giorni selezionato nel passato. Gli spazi indicano periodi senza letture.";

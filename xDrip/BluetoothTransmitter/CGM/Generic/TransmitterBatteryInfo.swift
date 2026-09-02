@@ -6,7 +6,7 @@ import Foundation
 /// G7, ONE+ and Stelo use the disposable-sensor behaviour represented by `.g7`. Keep this
 /// family beside the measurement so alerts never have to infer battery semantics from a global
 /// transmitter selection that may already have changed.
-enum DexcomBatteryFamily: UInt8, Equatable {
+enum DexcomBatteryFamily: Int16, Codable, Equatable {
     case g5 = 1
     case g7 = 2
 

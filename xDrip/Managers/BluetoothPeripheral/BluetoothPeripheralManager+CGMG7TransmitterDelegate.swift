@@ -73,6 +73,15 @@ extension BluetoothPeripheralManager: CGMG7TransmitterDelegate {
         dexcomG7.batteryTemperature = Int32(battery.temperature)
         dexcomG7.batteryLastReadDate = readAt
         coreDataManager.saveChanges()
+        batteryHistoryManager.record(
+            peripheralObjectID: dexcomG7.blePeripheral.objectID,
+            observedAt: readAt,
+            observation: .dexcom(
+                family: .g7, status: Int(battery.status), voltageA: battery.voltageA,
+                voltageB: battery.voltageB, resistance: battery.resistance,
+                runtime: battery.runtime, temperature: battery.temperature, producer: .dexcomG7
+            )
+        )
 
         // Derive a controlled family name from the Bluetooth identity. The Activity Log may say
         // Dexcom G7, Dexcom ONE+, or Dexcom Stelo, but never includes the actual sensor identifier.

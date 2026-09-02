@@ -185,6 +185,10 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
     private var dexcomSessionStopTxMessageToSendToTransmitter: DexcomSessionStopTxMessage?
     
     private var timeStampLastConnection = Date(timeIntervalSince1970: 0)
+
+    // Last genuine battery packet for this exact saved Dexcom peripheral.
+    // This keeps request cadence device-local instead of consulting the active-CGM cache.
+    private var batteryLastReadDate: Date?
     
     /// to use in firefly flow, if true, then sensor status is ok, backfill request can be sent
     private var okToRequestBackfill = false
@@ -215,7 +219,7 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
     ///     - userOtherApp
     ///     - isAnubis: true or false. If true then we can take advantage of extra features
     ///     - bluetoothSlot: the role byte to use for G6 authentication
-    init(address:String?, name: String?, transmitterID:String, bluetoothTransmitterDelegate: BluetoothTransmitterDelegate, cGMG5TransmitterDelegate: CGMG5TransmitterDelegate, cGMTransmitterDelegate:CGMTransmitterDelegate, transmitterStartDate: Date?, sensorStartDate: Date?, activeSensorStartDate: Date?, calibrationToSendToTransmitter: Calibration?, firmware: String?, webOOPEnabled: Bool?, useOtherApp: Bool, isAnubis: Bool, bluetoothSlot: DexcomG6BluetoothSlot) {
+    init(address:String?, name: String?, transmitterID:String, bluetoothTransmitterDelegate: BluetoothTransmitterDelegate, cGMG5TransmitterDelegate: CGMG5TransmitterDelegate, cGMTransmitterDelegate:CGMTransmitterDelegate, transmitterStartDate: Date?, sensorStartDate: Date?, activeSensorStartDate: Date?, calibrationToSendToTransmitter: Calibration?, firmware: String?, batteryLastReadDate: Date?, webOOPEnabled: Bool?, useOtherApp: Bool, isAnubis: Bool, bluetoothSlot: DexcomG6BluetoothSlot) {
         // assign addressname and name or expected devicename
         var newAddressAndName:BluetoothTransmitter.DeviceAddressAndName = BluetoothTransmitter.DeviceAddressAndName.notYetConnected(expectedName: "DEXCOM" + transmitterID[transmitterID.index(transmitterID.startIndex, offsetBy: 4)..<transmitterID.endIndex])
         if let address = address {
@@ -242,6 +246,9 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
         
         // initialize firmware
         self.firmware = firmware
+
+        // Restore the per-device battery cadence from Core Data.
+        self.batteryLastReadDate = batteryLastReadDate
         
         // initialize isAnubis
         self.isAnubis = isAnubis
@@ -1353,8 +1360,10 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
             trace("in processBatteryStatusRxMessage, voltageA = %{public}@, voltageB = %{public}@, resist = %{public}@, runtime = %{public}@, temperature = %{public}@, status = %{public}@", log: log, category: ConstantsLog.categoryCGMG5, type: .info, batteryStatusRxMessage.voltageA.description, batteryStatusRxMessage.voltageB.description, batteryStatusRxMessage.resist.description, batteryStatusRxMessage.runtime.description, batteryStatusRxMessage.temperature.description, batteryStatusRxMessage.status.description)
 
             // possibly other app is running in parallel and also requested battery info, in that case don't store it again
-            let timeStampOfLastBatteryReading = UserDefaults.standard.timeStampOfLastBatteryReading ?? Date(timeIntervalSince1970: 0)
+            let timeStampOfLastBatteryReading = batteryLastReadDate ?? Date(timeIntervalSince1970: 0)
             if Date() > Date(timeInterval: ConstantsDexcomG5.batteryReadPeriod, since: timeStampOfLastBatteryReading) {
+
+                batteryLastReadDate = Date()
 
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
@@ -1849,7 +1858,7 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
     /// - returns:
     ///     - true if batter status requested, otherwise false
     private func batteryStatusRequested() -> Bool {
-        let timeStampOfLastBatteryReading = UserDefaults.standard.timeStampOfLastBatteryReading ?? Date(timeIntervalSince1970: 0)
+        let timeStampOfLastBatteryReading = batteryLastReadDate ?? Date(timeIntervalSince1970: 0)
         if Date() > Date(timeInterval: ConstantsDexcomG5.batteryReadPeriod, since: timeStampOfLastBatteryReading) {
             trace("in batteryStatusRequested, last battery reading was long time ago, requesting now", log: log, category: ConstantsLog.categoryCGMG5, type: .info)
             

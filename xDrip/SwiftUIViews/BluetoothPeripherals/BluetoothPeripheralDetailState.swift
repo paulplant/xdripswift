@@ -8,6 +8,7 @@
 
 import AVFoundation
 import CoreBluetooth
+import CoreData
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -49,6 +50,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
     private let presentTextEntryView: (BluetoothPeripheralTextEntry) -> Void
     private let presentSelectionListView: (BluetoothPeripheralSelectionList) -> Void
     private let presentReadSuccessView: (TransmitterReadSuccessDisplay, BluetoothPeripheralType) -> Void
+    private let presentBatteryHistoryView: (NSManagedObjectID) -> Void
 
     var onlineHelpTopic: OnlineHelpTopic {
         expectedBluetoothPeripheralType.onlineHelpTopic
@@ -90,7 +92,8 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         closeDetailView: @escaping () -> Void,
         presentTextEntryView: @escaping (BluetoothPeripheralTextEntry) -> Void,
         presentSelectionListView: @escaping (BluetoothPeripheralSelectionList) -> Void,
-        presentReadSuccessView: @escaping (TransmitterReadSuccessDisplay, BluetoothPeripheralType) -> Void
+        presentReadSuccessView: @escaping (TransmitterReadSuccessDisplay, BluetoothPeripheralType) -> Void,
+        presentBatteryHistoryView: @escaping (NSManagedObjectID) -> Void
     ) {
         self.bluetoothPeripheral = bluetoothPeripheral
         self.expectedBluetoothPeripheralType = expectedBluetoothPeripheralType
@@ -103,6 +106,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         self.presentTextEntryView = presentTextEntryView
         self.presentSelectionListView = presentSelectionListView
         self.presentReadSuccessView = presentReadSuccessView
+        self.presentBatteryHistoryView = presentBatteryHistoryView
         self.transmitterIdTempValue = bluetoothPeripheral?.blePeripheral.transmitterId
         self.dexcomG6BluetoothSlot = (bluetoothPeripheral as? DexcomG5)?
             .resolvedDexcomG6BluetoothSlot() ?? dexcomConfiguration?.g6BluetoothSlot ?? .defaultSlot
@@ -342,18 +346,6 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
             ))
         }
 
-        // EmaLink and OrangeLink are configured through the generic heartbeat device type. Add
-        // their optional Battery Level row only after the connected device has returned a valid
-        // standard BLE percentage; all other users continue to see the existing section unchanged.
-        if let batteryLevel = genericHeartbeatBatteryLevel(),
-           let detail = BluetoothBatteryLevelPresentation.detail(for: batteryLevel) {
-            rows.append(row(
-                id: "battery-level",
-                title: Texts_BluetoothPeripheralsView.batteryLevel,
-                detail: detail,
-                detailSymbol: batterySymbol(percent: batteryLevel)
-            ))
-        }
 
         return rows
     }
@@ -362,19 +354,57 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         genericHeartbeatTransmitter()?.batteryLevel
     }
 
+    private func batteryHistoryRow(requireExistingHistory: Bool) -> BluetoothPeripheralDetailRow? {
+        guard let peripheral = bluetoothPeripheral?.blePeripheral,
+              !peripheral.objectID.isTemporaryID else { return nil }
+
+        if requireExistingHistory,
+           !BatteryHistoryManager(coreDataManager: coreDataManager)
+            .hasHistory(peripheralObjectID: peripheral.objectID) {
+            return nil
+        }
+
+        return row(
+            id: "battery-history",
+            title: Texts_BluetoothPeripheralView.batteryHistory,
+            showsDisclosure: true,
+            action: { [weak self] in self?.presentBatteryHistoryView(peripheral.objectID) }
+        )
+    }
+
+    private func makeHeartbeatBatterySections() -> [BluetoothPeripheralDetailSection] {
+        guard let batteryLevel = genericHeartbeatBatteryLevel(),
+              let detail = BluetoothBatteryLevelPresentation.detail(for: batteryLevel),
+              let historyRow = batteryHistoryRow(requireExistingHistory: false) else { return [] }
+
+        return [BluetoothPeripheralDetailSection(
+            id: "heartbeat-battery",
+            title: Texts_BluetoothPeripheralView.battery,
+            headerSymbol: batterySymbol(percent: batteryLevel),
+            rows: [
+                row(
+                    id: "battery-level",
+                    title: Texts_BluetoothPeripheralsView.batteryLevel,
+                    detail: detail
+                ),
+                historyRow
+            ]
+        )]
+    }
+
     private func updateGenericHeartbeatBatteryLevel() {
         genericHeartbeatTransmitter()?.updateBatteryLevel()
     }
 
-    private func genericHeartbeatTransmitter() -> Libre3HeartBeatBluetoothTransmitter? {
+    private func genericHeartbeatTransmitter() -> StandardBatteryLevelProviding? {
         // Resolve the already-active transmitter only. The detail screen must never create a
         // heartbeat connection merely to discover whether an EmaLink or OrangeLink has a battery.
-        guard expectedBluetoothPeripheralType == .Libre3HeartBeatType,
+        guard [.Libre3HeartBeatType, .DexcomG7HeartBeatType].contains(expectedBluetoothPeripheralType),
               let bluetoothPeripheral,
               let transmitter = bluetoothPeripheralManager?.getBluetoothTransmitter(
                   for: bluetoothPeripheral,
                   createANewOneIfNecesssary: false
-              ) as? Libre3HeartBeatBluetoothTransmitter
+              ) as? StandardBatteryLevelProviding
         else {
             return nil
         }
@@ -457,7 +487,9 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
             return makeM5StackSections(bluetoothPeripheral: bluetoothPeripheral, includesSpecificM5StackSection: true)
         case .M5StickCType:
             return makeM5StackSections(bluetoothPeripheral: bluetoothPeripheral, includesSpecificM5StackSection: false)
-        case .Libre3HeartBeatType, .DexcomG7HeartBeatType, .OmniPodHeartBeatType:
+        case .Libre3HeartBeatType, .DexcomG7HeartBeatType:
+            return makeHeartbeatBatterySections()
+        case .OmniPodHeartBeatType:
             return []
         }
     }
@@ -699,14 +731,17 @@ private extension BluetoothPeripheralDetailState {
         // Zero is a valid BLE Battery Level reported by devices such as EmaLink and OrangeLink,
         // so it must use the existing empty red symbol rather than being treated as unavailable.
         // Values outside the percentage range remain hidden instead of implying a battery state.
-        guard (0 ... 100).contains(percent) else { return nil }
+        guard BluetoothBatteryLevelPresentation.validRange.contains(percent) else { return nil }
+
+        if percent <= BluetoothBatteryLevelPresentation.urgentUpperBound {
+            return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 0), color: Color(.systemRed))
+        }
+        if percent <= BluetoothBatteryLevelPresentation.warningUpperBound {
+            return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 25), color: Color(.systemYellow))
+        }
 
         switch percent {
-        case 0...10:
-            return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 0), color: Color(.systemRed))
-        case 11...25:
-            return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 25), color: Color(.systemYellow))
-        case 26...65:
+        case ...65:
             return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 50), color: .green)
         case 66...90:
             return BluetoothPeripheralDetailSymbol(systemName: batterySystemName(percent: 75), color: .green)
@@ -2070,6 +2105,7 @@ private extension BluetoothPeripheralDetailState {
             title: Texts_BluetoothPeripheralView.battery,
             headerSymbol: batterySymbol(voltageB: voltageB, family: family),
             rows: makeDexcomBatteryRows(rowIDPrefix: rowIDPrefix, voltageA: voltageA, voltageB: voltageB)
+                + (batteryHistoryRow(requireExistingHistory: false).map { [$0] } ?? [])
         )
     }
 
@@ -2527,7 +2563,7 @@ private extension BluetoothPeripheralDetailState {
         firmware: String?,
         hardware: String?
     ) -> [BluetoothPeripheralDetailRow] {
-        [
+        var rows = [
             row(id: "\(idPrefix)-sensor-type", title: Texts_BluetoothPeripheralView.sensorType, detail: sensorType),
             row(
                 id: "\(idPrefix)-sensor-serial-number",
@@ -2545,7 +2581,14 @@ private extension BluetoothPeripheralDetailState {
                 title: Texts_BluetoothPeripheralsView.batteryLevel,
                 detail: batteryLevel > 0 ? batteryLevel.description + " %" : "",
                 detailSymbol: batterySymbol(percent: batteryLevel)
-            ),
+            )
+        ]
+
+        if let historyRow = batteryHistoryRow(requireExistingHistory: true) {
+            rows.append(historyRow)
+        }
+
+        rows.append(contentsOf: [
             row(
                 id: "\(idPrefix)-firmware",
                 title: Texts_Common.firmware,
@@ -2566,7 +2609,8 @@ private extension BluetoothPeripheralDetailState {
                     self?.showInfo(title: Texts_HomeView.info, message: hardware.map { Texts_Common.hardware + ": " + $0 })
                 }
             )
-        ]
+        ])
+        return rows
     }
 }
 
@@ -2664,13 +2708,20 @@ private extension BluetoothPeripheralDetailState {
     }
 
     func makeM5StackSpecificRows(m5Stack: M5Stack) -> [BluetoothPeripheralDetailRow] {
-        [
+        var rows = [
             row(
                 id: "m5-battery-level",
                 title: Texts_BluetoothPeripheralsView.batteryLevel,
                 detail: m5Stack.batteryLevel > 0 ? m5Stack.batteryLevel.description + " %" : "",
                 detailSymbol: batterySymbol(percent: m5Stack.batteryLevel)
-            ),
+            )
+        ]
+
+        if let historyRow = batteryHistoryRow(requireExistingHistory: true) {
+            rows.append(historyRow)
+        }
+
+        rows.append(contentsOf: [
             row(
                 id: "m5-brightness",
                 title: Texts_SettingsView.m5StackBrightness,
@@ -2688,7 +2739,8 @@ private extension BluetoothPeripheralDetailState {
                     self?.requestM5PowerOff(m5Stack: m5Stack)
                 }
             )
-        ]
+        ])
+        return rows
     }
 
     func m5TextColorText(m5Stack: M5Stack) -> String {
@@ -2888,10 +2940,10 @@ private extension BluetoothPeripheralDetailState {
 // MARK: - Generic Bluetooth Delegate
 
 extension BluetoothPeripheralDetailState: BluetoothTransmitterDelegate {
-    func didUpdateBatteryLevel(_: Int, bluetoothTransmitter _: BluetoothTransmitter) {
-        // Rebuild the visible rows when an EmaLink/OrangeLink battery read completes. The callback
-        // carries no persistent state because the active transmitter remains the single source of
-        // truth and releasing it automatically removes the optional row.
+    func didUpdateBatteryLevel(_ batteryLevel: Int, bluetoothTransmitter: BluetoothTransmitter) {
+        bluetoothPeripheralManager?.didUpdateBatteryLevel(batteryLevel, bluetoothTransmitter: bluetoothTransmitter)
+        // The manager persists the genuine reading against this peripheral; then rebuild the rows so
+        // the optional Battery section appears as soon as a supported device returns a value.
         refreshOnMain()
     }
 
@@ -2936,10 +2988,16 @@ extension BluetoothPeripheralDetailState: BluetoothTransmitterDelegate {
 }
 
 enum BluetoothBatteryLevelPresentation {
+    // These boundaries drive both the percentage battery symbol and history-chart bands.
+    static let urgentUpperBound = 10
+    static let warningUpperBound = 25
+    static let validRange = 0 ... 100
+    static let chartThresholds = [urgentUpperBound, warningUpperBound]
+
     static func detail(for batteryLevel: Int?) -> String? {
         // A missing or invalid value means the optional EmaLink/OrangeLink row stays completely
         // invisible. A genuine 0% remains displayable and is not confused with missing data.
-        guard let batteryLevel, (0 ... 100).contains(batteryLevel) else { return nil }
+        guard let batteryLevel, validRange.contains(batteryLevel) else { return nil }
 
         return batteryLevel.description + " %"
     }

@@ -162,3 +162,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Dela anslutningen med en annan app. Se till att Dexcom- eller CamAPS-appen fungerar korrekt i bakgrunden.";
 "dexcomG7NoSensorLabelFound" = "Ingen Dexcom G7-sensoretikett hittades på bilden.";
 "dexcomG7InvalidSensorLabelFound" = "En Data Matrix hittades, men den var inte en giltig Dexcom G7-sensoretikett.";
+
+
+/* Battery history */
+"batteryHistory" = "Batterihistorik";
+"batteryHistoryTransmitterID" = "Sändar-ID";
+"batteryHistoryNoData" = "Ingen batterihistorik";
+"batteryHistoryBeginsAfterReading" = "Historiken börjar efter nästa faktiska batteriavläsning.";
+"batteryHistoryRange" = "Intervall";
+"batteryHistoryRangeAccessibility" = "Intervall för batterihistorik";
+"batteryHistoryRangeExplanation" = "Fasta intervall går från nu och tillbaka det valda antalet dagar. Luckor visar perioder utan avläsning.";

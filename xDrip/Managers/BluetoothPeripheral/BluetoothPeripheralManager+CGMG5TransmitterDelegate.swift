@@ -32,8 +32,17 @@ extension BluetoothPeripheralManager: CGMG5TransmitterDelegate {
         dexcomG5.batteryRuntime = Int32(runt)
         
         dexcomG5.batteryTemperature = Int32(temp)
-        
+        let readAt = Date()
+        dexcomG5.batteryLastReadDate = readAt
         coreDataManager.saveChanges()
+        batteryHistoryManager.record(
+            peripheralObjectID: dexcomG5.blePeripheral.objectID,
+            observedAt: readAt,
+            observation: .dexcom(
+                family: .g5, status: Int(dexcomG5.batteryStatus), voltageA: voltA,
+                voltageB: voltB, resistance: res, runtime: runt, temperature: temp, producer: .dexcomG5
+            )
+        )
         
     }
     

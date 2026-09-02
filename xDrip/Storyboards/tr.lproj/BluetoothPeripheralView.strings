@@ -152,3 +152,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Bağlantıyı başka bir uygulamayla paylaşın. Dexcom veya CamAPS uygulamasını arka planda düzgün çalışır durumda tutun.";
 "dexcomG7NoSensorLabelFound" = "Fotoğrafta Dexcom G7 sensör etiketi bulunamadı.";
 "dexcomG7InvalidSensorLabelFound" = "Bir Data Matrix bulundu, ancak geçerli bir Dexcom G7 sensör etiketi değildi.";
+
+
+/* Battery history */
+"batteryHistory" = "Pil geçmişi";
+"batteryHistoryTransmitterID" = "Verici kimliği";
+"batteryHistoryNoData" = "Pil geçmişi yok";
+"batteryHistoryBeginsAfterReading" = "Geçmiş, bir sonraki gerçek pil okumasından sonra başlar.";
+"batteryHistoryRange" = "Aralık";
+"batteryHistoryRangeAccessibility" = "Pil geçmişi aralığı";
+"batteryHistoryRangeExplanation" = "Sabit aralıklar şu andan seçilen gün sayısı kadar geriye uzanır. Boşluklar okuma olmayan dönemleri gösterir.";

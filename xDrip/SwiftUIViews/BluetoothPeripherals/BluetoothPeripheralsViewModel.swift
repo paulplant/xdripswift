@@ -9,6 +9,7 @@
 import Combine
 import CoreBluetooth
 import Foundation
+import CoreData
 
 // MARK: - Navigation
 
@@ -57,6 +58,10 @@ final class BluetoothPeripheralsRouter: ObservableObject {
         path.append(BluetoothPeripheralsRoute(.selectionList(selectionList)))
     }
 
+    func showBatteryHistory(peripheralObjectID: NSManagedObjectID) {
+        path.append(BluetoothPeripheralsRoute(.batteryHistory(peripheralObjectID)))
+    }
+
     func showReadSuccess(_ display: TransmitterReadSuccessDisplay, type: BluetoothPeripheralType) {
         path.append(BluetoothPeripheralsRoute(.readSuccess(display, type)))
     }
@@ -82,6 +87,7 @@ struct BluetoothPeripheralsRoute: Hashable {
         case textEntry(BluetoothPeripheralTextEntry)
         case selectionList(BluetoothPeripheralSelectionList)
         case readSuccess(TransmitterReadSuccessDisplay, BluetoothPeripheralType)
+        case batteryHistory(NSManagedObjectID)
     }
 
     let id = UUID()

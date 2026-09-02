@@ -228,3 +228,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Delite povezavo z drugo aplikacijo. Aplikacija Dexcom ali CamAPS mora pravilno delovati v ozadju.";
 "dexcomG7NoSensorLabelFound" = "Na fotografiji ni bila najdena oznaka senzorja Dexcom G7.";
 "dexcomG7InvalidSensorLabelFound" = "Najdena je bila koda Data Matrix, vendar ni bila veljavna oznaka senzorja Dexcom G7.";
+
+
+/* Battery history */
+"batteryHistory" = "Zgodovina baterije";
+"batteryHistoryTransmitterID" = "ID oddajnika";
+"batteryHistoryNoData" = "Ni zgodovine baterije";
+"batteryHistoryBeginsAfterReading" = "Zgodovina se začne po naslednjem dejanskem odčitku baterije.";
+"batteryHistoryRange" = "Obdobje";
+"batteryHistoryRangeAccessibility" = "Obdobje zgodovine baterije";
+"batteryHistoryRangeExplanation" = "Fiksna obdobja segajo od zdaj nazaj za izbrano število dni. Vrzeli prikazujejo obdobja brez odčitka.";

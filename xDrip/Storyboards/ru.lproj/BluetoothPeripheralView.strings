@@ -155,3 +155,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Используйте подключение совместно с другим приложением. Приложение Dexcom или CamAPS должно корректно работать в фоновом режиме.";
 "dexcomG7NoSensorLabelFound" = "На фотографии не найдена этикетка сенсора Dexcom G7.";
 "dexcomG7InvalidSensorLabelFound" = "Найден код Data Matrix, но он не является допустимой этикеткой сенсора Dexcom G7.";
+
+
+/* Battery history */
+"batteryHistory" = "История батареи";
+"batteryHistoryTransmitterID" = "ID трансмиттера";
+"batteryHistoryNoData" = "Нет истории батареи";
+"batteryHistoryBeginsAfterReading" = "История начнётся после следующего фактического показания батареи.";
+"batteryHistoryRange" = "Период";
+"batteryHistoryRangeAccessibility" = "Период истории батареи";
+"batteryHistoryRangeExplanation" = "Фиксированные периоды отсчитываются от текущего момента назад на выбранное количество дней. Пробелы обозначают периоды без показаний.";

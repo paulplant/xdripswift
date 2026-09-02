@@ -152,3 +152,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Μοιραστείτε τη σύνδεση με άλλη εφαρμογή. Διατηρήστε την εφαρμογή Dexcom ή CamAPS σε σωστή λειτουργία στο παρασκήνιο.";
 "dexcomG7NoSensorLabelFound" = "Δεν βρέθηκε ετικέτα αισθητήρα Dexcom G7 στη φωτογραφία.";
 "dexcomG7InvalidSensorLabelFound" = "Βρέθηκε Data Matrix, αλλά δεν ήταν έγκυρη ετικέτα αισθητήρα Dexcom G7.";
+
+
+/* Battery history */
+"batteryHistory" = "Ιστορικό μπαταρίας";
+"batteryHistoryTransmitterID" = "ID πομπού";
+"batteryHistoryNoData" = "Δεν υπάρχει ιστορικό μπαταρίας";
+"batteryHistoryBeginsAfterReading" = "Το ιστορικό αρχίζει μετά την επόμενη πραγματική ένδειξη μπαταρίας.";
+"batteryHistoryRange" = "Εύρος";
+"batteryHistoryRangeAccessibility" = "Εύρος ιστορικού μπαταρίας";
+"batteryHistoryRangeExplanation" = "Τα σταθερά εύρη εκτείνονται από τώρα έως τον επιλεγμένο αριθμό ημερών στο παρελθόν. Τα κενά δείχνουν περιόδους χωρίς ένδειξη.";

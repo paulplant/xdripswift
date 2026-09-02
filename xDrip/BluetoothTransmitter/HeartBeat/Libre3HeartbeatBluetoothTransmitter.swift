@@ -28,8 +28,14 @@ enum StandardBluetoothBatteryLevel {
     }
 }
 
+/// A heartbeat transmitter that exposes a readable standard BLE Battery Level characteristic.
+protocol StandardBatteryLevelProviding: AnyObject {
+    var batteryLevel: Int? { get }
+    func updateBatteryLevel()
+}
+
 @objcMembers
-class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter {
+class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter, StandardBatteryLevelProviding {
 
     // MARK: - properties
 

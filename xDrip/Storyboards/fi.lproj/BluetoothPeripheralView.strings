@@ -161,3 +161,13 @@
 "dexcomCoexistenceModeAddFlowMessage" = "Jaa yhteys toisen sovelluksen kanssa. Pidä Dexcom- tai CamAPS-sovellus toiminnassa taustalla.";
 "dexcomG7NoSensorLabelFound" = "Kuvasta ei löytynyt Dexcom G7 -sensorin etikettiä.";
 "dexcomG7InvalidSensorLabelFound" = "Data Matrix löytyi, mutta se ei ollut kelvollinen Dexcom G7 -sensorin etiketti.";
+
+
+/* Battery history */
+"batteryHistory" = "Akkuhistoria";
+"batteryHistoryTransmitterID" = "Lähettimen tunnus";
+"batteryHistoryNoData" = "Ei akkuhistoriaa";
+"batteryHistoryBeginsAfterReading" = "Historia alkaa seuraavan todellisen akkulukeman jälkeen.";
+"batteryHistoryRange" = "Aikaväli";
+"batteryHistoryRangeAccessibility" = "Akkuhistorian aikaväli";
+"batteryHistoryRangeExplanation" = "Kiinteät aikavälit ulottuvat nykyhetkestä valitun päivämäärän verran taaksepäin. Aukot osoittavat ajanjaksot, joilta lukema puuttuu.";
