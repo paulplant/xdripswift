@@ -439,15 +439,11 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         if let peripheral = peripheral {
             trace("in setNotifyValue, for peripheral with name %{public}@, setting notify for characteristic %{public}@, to %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .debug, deviceName ?? "'unknown'", characteristic.uuid.uuidString, enabled.description)
 
-            // CoreBluetooth delegate callbacks already arrive on centralQueue. In Dexcom
-            // passive/co-existence mode the control notification window can be very short,
-            // so do not queue-hop from an auth callback before subscribing to Write_Control.
-            if DispatchQueue.getSpecific(key: centralQueueSpecificKey) != nil {
+            // Keep CoreBluetooth operations queued after the current delegate callback has returned.
+            // Several transmitter families subscribe while handling characteristic discovery, and
+            // issuing the request inline changed the connection sequencing used before version 7.
+            centralQueue.async {
                 peripheral.setNotifyValue(enabled, for: characteristic)
-            } else {
-                centralQueue.async {
-                    peripheral.setNotifyValue(enabled, for: characteristic)
-                }
             }
         } else {
             trace("in setNotifyValue, for peripheral with name %{public}@, failed to set notify for characteristic %{public}@, to %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .error, deviceName ?? "'unknown'", characteristic.uuid.uuidString, enabled.description)
