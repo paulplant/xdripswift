@@ -615,10 +615,19 @@ struct RootTabView: View {
 private struct RootStatisticsTabView: View {
 
     let dependencies: RootTabDependencies
+    @ObservedObject private var rootHomeStateModel: RootHomeStateModel
+
+    init(dependencies: RootTabDependencies) {
+        self.dependencies = dependencies
+        rootHomeStateModel = dependencies.rootHomeStateModel
+    }
 
     var body: some View {
         NavigationStack {
-            StatisticsView(statisticsManager: dependencies.statisticsManager)
+            StatisticsView(
+                statisticsManager: dependencies.statisticsManager,
+                refreshRevision: rootHomeStateModel.state.chartRevision
+            )
         }
         .tint(ConstantsAppColors.navigationTint)
         .padding(.bottom, RootTabLayout.contentBottomPadding)
@@ -912,7 +921,8 @@ private struct RootHomeLandscapeView: View {
             } else {
                 RootHomeLandscapeChartView(
                     coreDataManager: coreDataManager,
-                    nightscoutSyncManager: nightscoutSyncManager
+                    nightscoutSyncManager: nightscoutSyncManager,
+                    refreshRevision: rootHomeStateModel.state.chartRevision
                 )
             }
         }
@@ -923,16 +933,23 @@ private struct RootHomeLandscapeView: View {
 /// Owns the landscape chart state for the lifetime of one landscape presentation.
 private struct RootHomeLandscapeChartView: View {
     @StateObject private var stateModel: LandscapeChartStateModel
+    let refreshRevision: Int
 
-    init(coreDataManager: CoreDataManager, nightscoutSyncManager: NightscoutSyncManager) {
+    init(coreDataManager: CoreDataManager, nightscoutSyncManager: NightscoutSyncManager, refreshRevision: Int) {
         _stateModel = StateObject(wrappedValue: LandscapeChartStateModel(
             coreDataManager: coreDataManager,
             nightscoutSyncManager: nightscoutSyncManager
         ))
+        self.refreshRevision = refreshRevision
     }
 
     var body: some View {
         LandscapeChartView(stateModel: stateModel)
+            .onChange(of: refreshRevision) { _ in
+                // A long-lived landscape presentation must replace both its chart snapshot and its
+                // selected-day statistics when Home reports that persisted glucose has changed.
+                stateModel.refresh()
+            }
     }
 }
 

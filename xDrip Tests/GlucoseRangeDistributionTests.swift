@@ -105,4 +105,16 @@ final class GlucoseRangeDistributionTests: XCTestCase {
         XCTAssertEqual(distribution, GlucoseRangeDistribution(below: 0, inRange: 0, above: 0))
         XCTAssertEqual(distribution.wholePercentages, [0, 0, 0])
     }
+
+    func testClinicalRangeSummaryCalculatesBothModesFromTheSameSamples() {
+        let summary = GlucoseClinicalRangeSummary(valuesMgDl: [69, 70, 140, 141, 181])
+
+        XCTAssertEqual(summary.timeInRange.wholePercentages, [20, 60, 20])
+        XCTAssertEqual(summary.timeInTightRange.wholePercentages, [20, 40, 40])
+    }
+
+    func testEmptyClinicalRangeSummaryProducesNoPercentages() {
+        XCTAssertEqual(GlucoseClinicalRangeSummary.empty.timeInRange.wholePercentages, [0, 0, 0])
+        XCTAssertEqual(GlucoseClinicalRangeSummary.empty.timeInTightRange.wholePercentages, [0, 0, 0])
+    }
 }

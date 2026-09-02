@@ -43,6 +43,8 @@ public final class StatisticsManager: @unchecked Sendable {
 
     struct LandscapeAnalytics {
         let baseline: LandscapeBaseline
+        /// Selected-day TIR and TITR calculated from the same validated samples as Statistics.
+        let rangeSummary: GlucoseClinicalRangeSummary
         let loopalyzer: LandscapeLoopalyzerSnapshot?
     }
 
@@ -299,6 +301,7 @@ public final class StatisticsManager: @unchecked Sendable {
                 guard let self else {
                     continuation.resume(returning: LandscapeAnalytics(
                         baseline: StatisticsManager.emptyLandscapeBaseline(),
+                        rangeSummary: .empty,
                         loopalyzer: nil
                     ))
                     return
@@ -316,6 +319,7 @@ public final class StatisticsManager: @unchecked Sendable {
                 ) else {
                     continuation.resume(returning: LandscapeAnalytics(
                         baseline: StatisticsManager.emptyLandscapeBaseline(),
+                        rangeSummary: .empty,
                         loopalyzer: nil
                     ))
                     return
@@ -333,9 +337,19 @@ public final class StatisticsManager: @unchecked Sendable {
                     usesMgDl: UserDefaults.standard.bloodGlucoseUnitIsMgDl,
                     agpPoints: self.makeAGPPoints(samples: baselineSamples)
                 )
+                // The chart state includes an off-screen cache buffer for smooth rendering. Derive
+                // TIR here from the validated selected-day samples so neighbouring days and invalid
+                // glucose values can never leak into the landscape percentages.
+                let rangeSummary = GlucoseClinicalRangeSummary(
+                    valuesMgDl: selectedDaySamples.map(\.valueMgDl)
+                )
 
                 guard includesAID else {
-                    continuation.resume(returning: LandscapeAnalytics(baseline: baseline, loopalyzer: nil))
+                    continuation.resume(returning: LandscapeAnalytics(
+                        baseline: baseline,
+                        rangeSummary: rangeSummary,
+                        loopalyzer: nil
+                    ))
                     return
                 }
 
@@ -373,7 +387,11 @@ public final class StatisticsManager: @unchecked Sendable {
                     )
                 )
 
-                continuation.resume(returning: LandscapeAnalytics(baseline: baseline, loopalyzer: loopalyzer))
+                continuation.resume(returning: LandscapeAnalytics(
+                    baseline: baseline,
+                    rangeSummary: rangeSummary,
+                    loopalyzer: loopalyzer
+                ))
             }
         }
     }

@@ -799,7 +799,8 @@ struct RootHomeView: View {
         NavigationStack {
             IPadExpandedLandscapeChartView(
                 coreDataManager: coreDataManager,
-                nightscoutSyncManager: nightscoutSyncManager
+                nightscoutSyncManager: nightscoutSyncManager,
+                refreshRevision: state.chartRevision
             )
                 .navigationTitle(Texts_Common.statisticsAmbulatoryGlucoseProfile)
                 .navigationBarTitleDisplayMode(.inline)
@@ -1201,16 +1202,22 @@ struct RootHomeView: View {
 /// Owns the landscape analytics state for one expanded iPad chart presentation.
 private struct IPadExpandedLandscapeChartView: View {
     @StateObject private var stateModel: LandscapeChartStateModel
+    let refreshRevision: Int
 
-    init(coreDataManager: CoreDataManager, nightscoutSyncManager: NightscoutSyncManager) {
+    init(coreDataManager: CoreDataManager, nightscoutSyncManager: NightscoutSyncManager, refreshRevision: Int) {
         _stateModel = StateObject(wrappedValue: LandscapeChartStateModel(
             coreDataManager: coreDataManager,
             nightscoutSyncManager: nightscoutSyncManager
         ))
+        self.refreshRevision = refreshRevision
     }
 
     var body: some View {
         LandscapeChartView(stateModel: stateModel, presentation: .expandedIPad)
+            .onChange(of: refreshRevision) { _ in
+                // Keep an expanded iPad chart open safely while new glucose is being persisted.
+                stateModel.refresh()
+            }
     }
 }
 
