@@ -42,7 +42,7 @@ final class BatteryHistoryTests: XCTestCase {
         XCTAssertEqual(axis.dates.dropFirst().dropLast().map { utcCalendar.component(.minute, from: $0) }, Array(repeating: 0, count: 23))
     }
 
-    func testDailyXAxisIncludesOneLabelForEveryDisplayedCalendarDay() {
+    func testDailyXAxisIncludesOneMarkForEveryDisplayedCalendarDay() {
         let start = utcDate(year: 2026, month: 9, day: 1, hour: 12, minute: 30)
         let end = utcDate(year: 2026, month: 9, day: 4, hour: 12, minute: 30)
         let axis = BatteryHistoryXAxis(domain: start ... end, calendar: utcCalendar)
@@ -50,6 +50,16 @@ final class BatteryHistoryTests: XCTestCase {
         XCTAssertEqual(axis.dates.first, start)
         XCTAssertEqual(axis.dates.last, end)
         XCTAssertEqual(axis.dates.map { utcCalendar.component(.day, from: $0) }, [1, 2, 3, 4])
+    }
+
+    func testXAxisLabelsOnlyFirstAndLastMarks() {
+        let start = utcDate(year: 2026, month: 9, day: 1, hour: 12, minute: 30)
+        let end = utcDate(year: 2026, month: 9, day: 2, hour: 12, minute: 30)
+        let axis = BatteryHistoryXAxis(domain: start ... end, calendar: utcCalendar)
+
+        XCTAssertTrue(axis.isEndpoint(start))
+        XCTAssertTrue(axis.isEndpoint(end))
+        XCTAssertTrue(axis.dates.dropFirst().dropLast().allSatisfy { !axis.isEndpoint($0) })
     }
 
     func testStandardBatteryParserAcceptsZeroAndRejectsMalformedValues() {

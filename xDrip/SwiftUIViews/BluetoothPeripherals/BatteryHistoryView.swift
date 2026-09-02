@@ -60,7 +60,7 @@ enum BatteryHistoryRange: Hashable, Identifiable {
     }
 }
 
-/// Creates stable localized X-axis marks for the selected battery-history domain.
+/// Creates stable X-axis marks with localized labels at the visible endpoints.
 struct BatteryHistoryXAxis {
     let domain: ClosedRange<Date>
     let calendar: Calendar
@@ -97,6 +97,10 @@ struct BatteryHistoryXAxis {
         usesHourlyMarks
             ? date.formatted(.dateTime.hour())
             : date.formatted(.dateTime.day().month(.abbreviated))
+    }
+
+    func isEndpoint(_ date: Date) -> Bool {
+        date == domain.lowerBound || date == domain.upperBound
     }
 
     func labelAnchor(for date: Date) -> UnitPoint {
@@ -329,8 +333,10 @@ struct BatteryHistoryView: View {
                         .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [4, 4]))
                 }
 
-                ForEach(segmentedPoints(percentagePoints, maximumGap: 2 * 3600)) { item in
-                    LineMark(x: .value("Time", item.point.observedAt), y: .value("Battery", item.point.percentage!), series: .value("Series", "Percentage-\(item.segment)"))
+                // Heartbeat readings can be sparse, so keep all genuine observations in one
+                // series and let the chart join them without manufacturing intermediate values.
+                ForEach(percentagePoints) { point in
+                    LineMark(x: .value("Time", point.observedAt), y: .value("Battery", point.percentage!), series: .value("Series", "Percentage"))
                         .foregroundStyle(Color.cyan)
                         .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                 }
@@ -346,13 +352,13 @@ struct BatteryHistoryView: View {
                             .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [4, 4]))
                     }
                 }
-                ForEach(segmentedPoints(visiblePoints.filter { $0.voltageA != nil }, maximumGap: 4 * 3600)) { item in
-                    LineMark(x: .value("Time", item.point.observedAt), y: .value("Voltage A", item.point.voltageA! * 10), series: .value("Series", "A-\(item.segment)"))
+                ForEach(visiblePoints.filter { $0.voltageA != nil }) { point in
+                    LineMark(x: .value("Time", point.observedAt), y: .value("Voltage A", point.voltageA! * 10), series: .value("Series", "Voltage A"))
                         .foregroundStyle(Color(.systemGray2).opacity(0.55))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 4]))
                 }
-                ForEach(segmentedPoints(voltageBPoints, maximumGap: 4 * 3600)) { item in
-                    LineMark(x: .value("Time", item.point.observedAt), y: .value("Voltage B", item.point.voltageB! * 10), series: .value("Series", "B-\(item.segment)"))
+                ForEach(voltageBPoints) { point in
+                    LineMark(x: .value("Time", point.observedAt), y: .value("Voltage B", point.voltageB! * 10), series: .value("Series", "Voltage B"))
                         .foregroundStyle(Color.cyan)
                         .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                 }
@@ -382,8 +388,8 @@ struct BatteryHistoryView: View {
                     .foregroundStyle(Color(.systemGray3).opacity(0.18))
                 AxisTick()
                     .foregroundStyle(Color(.systemGray2))
-                AxisValueLabel(anchor: value.as(Date.self).map(xAxis.labelAnchor)) {
-                    if let date = value.as(Date.self) {
+                if let date = value.as(Date.self), xAxis.isEndpoint(date) {
+                    AxisValueLabel(anchor: xAxis.labelAnchor(for: date)) {
                         Text(xAxis.label(for: date))
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(Color(.colorSecondary))
@@ -414,23 +420,6 @@ struct BatteryHistoryView: View {
             }
         }
         .accessibilityLabel(Texts_BluetoothPeripheralView.batteryHistory)
-    }
-
-    private struct SegmentedPoint: Identifiable {
-        let point: BatteryHistoryPoint
-        let segment: Int
-        var id: String { point.id }
-    }
-
-    private func segmentedPoints(_ source: [BatteryHistoryPoint], maximumGap: TimeInterval) -> [SegmentedPoint] {
-        // A new series prevents Charts from drawing an invented line through a missing-reading gap.
-        var segment = 0
-        var previousDate: Date?
-        return source.map { point in
-            if let previousDate, point.observedAt.timeIntervalSince(previousDate) > maximumGap { segment += 1 }
-            previousDate = point.observedAt
-            return SegmentedPoint(point: point, segment: segment)
-        }
     }
 
     private var automaticVoltageDomain: ClosedRange<Int> {
