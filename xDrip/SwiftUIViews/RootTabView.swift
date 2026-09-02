@@ -671,6 +671,7 @@ private struct RootHomeTabView: View {
                         nightscoutSyncManager: dependencies.nightscoutSyncManager,
                         actions: rootHomeActions(from: dependencies)
                     )
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                 }
 
             }
