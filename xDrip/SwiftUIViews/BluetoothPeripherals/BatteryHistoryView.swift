@@ -18,7 +18,20 @@ enum BatteryHistoryRange: Hashable, Identifiable {
     case days(Int)
     case lifetime(TimeInterval)
 
-    var id: String { label }
+    /// Picker identity is structural rather than localized presentation. Only one lifetime option
+    /// is ever present, and its identity must remain distinct from a fixed range with the same label.
+    enum ID: Hashable {
+        case days(Int)
+        case lifetime
+    }
+
+    var id: ID {
+        switch self {
+        case .days(let days): return .days(days)
+        case .lifetime: return .lifetime
+        }
+    }
+
     var label: String {
         switch self {
         case .days(let days): return "\(days)\(Texts_Common.dayshort)"

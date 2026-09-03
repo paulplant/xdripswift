@@ -26,6 +26,22 @@ final class BatteryHistoryTests: XCTestCase {
         XCTAssertEqual(labels(after: TimeInterval(days: 12) + 3600), ["3d", "7d", "12d", "12d1h"])
     }
 
+    func testAdaptiveRangeIdentityDoesNotCollideWithTruncatedLifetimeLabel() {
+        for lifetime in [
+            TimeInterval(days: 3) + 1,
+            TimeInterval(days: 3) + 3599,
+            TimeInterval(days: 7) + 1,
+            TimeInterval(days: 7) + 3599,
+        ] {
+            let ranges = BatteryHistoryRange.available(
+                firstObservation: now.addingTimeInterval(-lifetime),
+                now: now
+            )
+
+            XCTAssertEqual(Set(ranges.map(\.id)).count, ranges.count)
+        }
+    }
+
     func testLifetimeChartHasSixHourMinimumDomain() {
         let range = BatteryHistoryRange.lifetime(30 * 60).domain(now: now)
         XCTAssertEqual(range.upperBound.timeIntervalSince(range.lowerBound), 6 * 3600, accuracy: 0.001)
