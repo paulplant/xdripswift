@@ -18,6 +18,9 @@ protocol DexcomG7AuthSessionTransport: AnyObject {
 
     /// Requests a new physical connection before an incomplete ownership state is rebuilt.
     func authSessionRequiresCleanReconnect()
+
+    /// Schedules authentication fragments on the transmitter's Core Bluetooth queue.
+    func authSessionSchedule(after delay: TimeInterval, _ action: @escaping () -> Void)
 }
 
 /// Implements the G7 primary authentication and ownership protocol.
@@ -627,7 +630,7 @@ final class DexcomG7AuthSession {
     }
 
     private func writeExchange(streamPackets: [Data], controlPacket: Data, reason: String) {
-        guard let authStreamCharacteristic else {
+        guard authStreamCharacteristic != nil else {
             fail("Auth_Stream is unavailable for \(reason)")
             return
         }
@@ -639,15 +642,17 @@ final class DexcomG7AuthSession {
         let generation = writeGeneration
         let packetSpacing: TimeInterval = 0.04
         for (index, packet) in streamPackets.enumerated() where !packet.isEmpty {
-            DispatchQueue.main.asyncAfter(deadline: .now() + packetSpacing * Double(index)) { [weak self] in
-                guard let self, self.writeGeneration == generation else { return }
+            transport?.authSessionSchedule(after: packetSpacing * Double(index)) { [weak self] in
+                guard let self,
+                      self.writeGeneration == generation,
+                      let authStreamCharacteristic = self.authStreamCharacteristic else { return }
                 trace("G7 primary %{public}@ TX stream %{public}d/%{public}d: %{public}@", log: self.log, category: ConstantsLog.categoryCGMG7, type: .debug, reason, index + 1, streamPackets.count, packet.hexEncodedString())
                 self.transport?.authSessionWrite(packet, to: authStreamCharacteristic, type: .withoutResponse)
             }
         }
 
         let delay = packetSpacing * Double(streamPackets.count + 1)
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+        transport?.authSessionSchedule(after: delay) { [weak self] in
             guard let self, self.writeGeneration == generation else { return }
             self.writeControl(controlPacket)
         }

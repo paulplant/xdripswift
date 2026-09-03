@@ -51,7 +51,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     private let centralQueueSpecificKey = DispatchSpecificKey<Void>()
     
     /// assert helper to ensure code is running on centralQueue (debug-only)
-    private func assertOnCentral(function: String = #function) {
+    final func assertOnCentral(function: String = #function) {
         // Using dispatchPrecondition is safe and low-overhead. This is for development safety only.
         dispatchPrecondition(condition: .onQueue(centralQueue))
     }
@@ -66,12 +66,29 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     }
 
     /// helper to synchronously execute work on centralQueue (re-entrant safe)
-    private func runOnCentralQueueSync<T>(_ block: () -> T) -> T {
+    final func runOnCentralQueueSync<T>(_ block: () -> T) -> T {
         if DispatchQueue.getSpecific(key: centralQueueSpecificKey) != nil {
             return block()
         } else {
             return centralQueue.sync(execute: block)
         }
+    }
+
+    /// Executes subclass protocol state on the same serial queue as Core Bluetooth callbacks.
+    final func runOnCentralQueue(_ block: @escaping () -> Void) {
+        if DispatchQueue.getSpecific(key: centralQueueSpecificKey) != nil {
+            block()
+        } else {
+            centralQueue.async(execute: DispatchWorkItem(block: block))
+        }
+    }
+
+    /// Keeps delayed protocol work on the Core Bluetooth queue instead of crossing through main.
+    final func runOnCentralQueue(after delay: TimeInterval, _ block: @escaping () -> Void) {
+        centralQueue.asyncAfter(
+            deadline: .now() + delay,
+            execute: DispatchWorkItem(block: block)
+        )
     }
     
     /// centralManager

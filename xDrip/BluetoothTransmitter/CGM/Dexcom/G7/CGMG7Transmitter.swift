@@ -393,12 +393,9 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
     }
 
     override func prepareForRelease() {
-        super.prepareForRelease()
-
-        // Delayed authentication writes and Core Bluetooth characteristic objects must not retain
-        // the transmitter after the manager releases it. Perform the cleanup on the main thread
-        // because the Bluetooth lifecycle and auth-session callbacks are main-thread coordinated.
-        let tearDown = {
+        // Authentication and characteristic state is owned by the Core Bluetooth queue. Incrementing
+        // the auth generation here also makes every delayed write from this connection a no-op.
+        runOnCentralQueueSync {
             self.authSession.resetForConnection()
             self.writeControlCharacteristic = nil
             self.receiveAuthenticationCharacteristic = nil
@@ -406,12 +403,19 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
             self.backfillCharacteristic = nil
             self.authStreamCharacteristic = nil
         }
-        if Thread.isMainThread { tearDown() } else { DispatchQueue.main.sync(execute: tearDown) }
+        super.prepareForRelease()
     }
 
     /// Primary mode owns its connection and uses the normal direct-connect path. Coexistence only
     /// attaches after the Dexcom app has established the system Bluetooth connection.
     override func connect() {
+        runOnCentralQueue { [weak self] in
+            self?.connectOnCentral()
+        }
+    }
+
+    private func connectOnCentral() {
+        assertOnCentral()
         if useOtherApp {
             startCoexistenceObservation()
         } else if primaryAuthenticationBlocked {
@@ -428,6 +432,13 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
     }
 
     func transitionToUseOtherApp(_ useOtherApp: Bool) {
+        runOnCentralQueue { [weak self] in
+            self?.transitionToUseOtherAppOnCentral(useOtherApp)
+        }
+    }
+
+    private func transitionToUseOtherAppOnCentral(_ useOtherApp: Bool) {
+        assertOnCentral()
         guard self.useOtherApp != useOtherApp else { return }
 
         // A non-UI caller can still request primary mode. Refuse that transition when there is no
@@ -463,6 +474,13 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
     }
 
     func transitionToPairingCode(_ pairingCode: String?) {
+        runOnCentralQueue { [weak self] in
+            self?.transitionToPairingCodeOnCentral(pairingCode)
+        }
+    }
+
+    private func transitionToPairingCodeOnCentral(_ pairingCode: String?) {
+        assertOnCentral()
         // Normalise anything other than exactly four decimal digits to nil. This keeps every later
         // authentication check working with one unambiguous representation of a missing code.
         let validCode = pairingCode?.count == 4 && pairingCode?.allSatisfy(\.isNumber) == true ? pairingCode : nil
@@ -484,6 +502,13 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
     }
 
     func transitionToBluetoothSlot(_ bluetoothSlot: DexcomG7BluetoothSlot) {
+        runOnCentralQueue { [weak self] in
+            self?.transitionToBluetoothSlotOnCentral(bluetoothSlot)
+        }
+    }
+
+    private func transitionToBluetoothSlotOnCentral(_ bluetoothSlot: DexcomG7BluetoothSlot) {
+        assertOnCentral()
         guard self.bluetoothSlot != bluetoothSlot else { return }
         // Slots are independent authentication identities. A primary slot change therefore resets
         // both authentication and all commands whose acknowledgement belongs to the old channel.
@@ -802,7 +827,7 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
     func cgmTransmitterType() -> CGMTransmitterType { .dexcomG7 }
 
     func maxSensorAgeInDays() -> Double? {
-        maximumSensorAgeInDays
+        runOnCentralQueueSync { maximumSensorAgeInDays }
     }
 
     /// Keeps every lifetime consumer on the same decision. The authenticated peripheral name is
@@ -833,6 +858,14 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
         // Detach the values needed by the BLE command before validating them. The original managed
         // object is looked up again by identifier only when a transmitter result must be saved.
         let pendingCalibration = PendingTransmitterCalibration(calibration: calibration)
+
+        runOnCentralQueue { [weak self] in
+            self?.queueCalibrationOnCentral(pendingCalibration)
+        }
+    }
+
+    private func queueCalibrationOnCentral(_ pendingCalibration: PendingTransmitterCalibration) {
+        assertOnCentral()
 
         // Replace any older unsent command with the calibration the user has just submitted. An
         // invalid replacement is reported locally and must never leave a stale command queued.
@@ -920,6 +953,10 @@ class CGMG7Transmitter: BluetoothTransmitter, CGMTransmitter, DexcomG7AuthSessio
         primaryGlucoseRequestSent = false
         resetCalibrationConnectionState(requeueInFlightCommand: true)
         disconnect()
+    }
+
+    func authSessionSchedule(after delay: TimeInterval, _ action: @escaping () -> Void) {
+        runOnCentralQueue(after: delay, action)
     }
 
     private func handleWriteControlValue(_ value: Data) {
