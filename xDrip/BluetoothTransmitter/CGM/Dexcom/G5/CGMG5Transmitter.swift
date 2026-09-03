@@ -401,6 +401,12 @@ class CGMG5Transmitter:BluetoothTransmitter, CGMTransmitter {
         useOtherApp
     }
 
+    /// Co-existence must subscribe during the current Bluetooth callback so it does not miss
+    /// the short authentication and control notification windows opened by the primary app.
+    override func shouldSetNotifyValueInline() -> Bool {
+        useOtherApp
+    }
+
     /// Failed passive connects restart scanning with the same delayed policy as
     /// passive disconnects. Active mode keeps the generic failure handling.
     override func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
