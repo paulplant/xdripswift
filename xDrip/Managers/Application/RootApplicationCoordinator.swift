@@ -563,10 +563,10 @@ import AppIntents
                 self.updateDataSourceInfo()
                 // update statistics related outlets
                 self.updateStatistics(animate: true)
-                // check and see if we need to restart the live activity in case the user dismissed it from the lock screen
-                // the app cannot restart the activity from the background so let's check it now
-                // we'll also take advantage to restart the live activity when the user brings the app to the foregroud
-                self.updateLiveActivityAndWidgets(forceRestart: true)
+                // Restart only if the app is still active after this delayed foreground refresh.
+                // A quick return to the background must keep the existing Live Activity alive:
+                // ActivityKit permits updating it there, but rejects creation of its replacement.
+                self.updateLiveActivityAndWidgets(forceRestart: UIApplication.shared.applicationState == .active)
                 self.updatePumpAndAIDStatusViews()
             }
         })
