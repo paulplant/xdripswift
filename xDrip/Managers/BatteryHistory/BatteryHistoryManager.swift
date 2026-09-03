@@ -75,6 +75,7 @@ final class BatteryHistoryManager {
 
     func record(peripheralObjectID: NSManagedObjectID, observedAt: Date = Date(), observation: BatteryHistoryObservation) {
         let context = coreDataManager.mainManagedObjectContext
+        var didPrepareSample = false
         context.performAndWait {
             guard !peripheralObjectID.isTemporaryID,
                   let peripheral = try? context.existingObject(with: peripheralObjectID) as? BLEPeripheral,
@@ -117,9 +118,14 @@ final class BatteryHistoryManager {
             }
 
             prune(before: observedAt.addingTimeInterval(-Self.retentionInterval), context: context)
-            guard coreDataManager.saveChanges() else { return }
-            NotificationCenter.default.post(name: .batteryHistoryDidChange, object: peripheralObjectID)
+            didPrepareSample = true
         }
+
+        // Leave the main-context mutation block before flushing both contexts. Battery callbacks
+        // are sparse and may be followed by an immediate process replacement during development,
+        // so reporting success before SQLite has committed the sample would silently lose history.
+        guard didPrepareSample, coreDataManager.saveChangesSynchronously() else { return }
+        NotificationCenter.default.post(name: .batteryHistoryDidChange, object: peripheralObjectID)
     }
 
     /// Returns whether this exact saved peripheral has at least one retained observation.
