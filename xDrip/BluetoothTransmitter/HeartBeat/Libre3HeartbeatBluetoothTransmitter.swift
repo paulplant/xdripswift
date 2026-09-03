@@ -198,24 +198,23 @@ class Libre3HeartBeatBluetoothTransmitter: BluetoothTransmitter, StandardBattery
     /// heartbeat device. Discovery remains responsible for the first read; this method is a no-op
     /// when the device does not expose the standard Battery Level characteristic.
     func updateBatteryLevel() {
-        guard let batteryLevelCharacteristic else { return }
-
-        readValueForCharacteristic(for: batteryLevelCharacteristic)
+        runOnCentralQueue { [weak self] in
+            guard let self, let batteryLevelCharacteristic = self.batteryLevelCharacteristic else { return }
+            self.readValueForCharacteristic(for: batteryLevelCharacteristic)
+        }
     }
 
     override func prepareForRelease() {
-        // Clear base CB delegates + unsubscribe common receiveCharacteristic synchronously on main
-        super.prepareForRelease()
-        // Libre3-specific transient state cleanup
-        let tearDown = {
+        runOnCentralQueueSync {
             self.timeStampOfLastHeartBeat = Date(timeIntervalSince1970: 0)
-            self.batteryLevel = nil
             self.batteryLevelCharacteristic = nil
         }
+        super.prepareForRelease()
+        let clearPublishedState = { self.batteryLevel = nil }
         if Thread.isMainThread {
-            tearDown()
+            clearPublishedState()
         } else {
-            DispatchQueue.main.sync(execute: tearDown)
+            DispatchQueue.main.async(execute: clearPublishedState)
         }
     }
 }

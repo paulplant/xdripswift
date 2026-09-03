@@ -62,10 +62,16 @@ class DexcomG7HeartbeatBluetoothTransmitter: BluetoothTransmitter, StandardBatte
     }
     
     override func prepareForRelease() {
-        // Clear base CB delegates + unsubscribe common receiveCharacteristic synchronously on main
+        runOnCentralQueueSync {
+            self.batteryLevelCharacteristic = nil
+        }
         super.prepareForRelease()
-        batteryLevel = nil
-        batteryLevelCharacteristic = nil
+        let clearPublishedLevel = { self.batteryLevel = nil }
+        if Thread.isMainThread {
+            clearPublishedLevel()
+        } else {
+            DispatchQueue.main.async(execute: clearPublishedLevel)
+        }
     }
     
     // MARK: CBCentralManager overriden functions
@@ -83,8 +89,11 @@ class DexcomG7HeartbeatBluetoothTransmitter: BluetoothTransmitter, StandardBatte
         if characteristic.service?.uuid == StandardBluetoothBatteryLevel.serviceUUID,
            characteristic.uuid == StandardBluetoothBatteryLevel.characteristicUUID {
             guard error == nil, let value = StandardBluetoothBatteryLevel.percentage(from: characteristic.value) else { return }
-            batteryLevel = value
-            bluetoothTransmitterDelegate?.didUpdateBatteryLevel(value, bluetoothTransmitter: self)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.batteryLevel = value
+                self.bluetoothTransmitterDelegate?.didUpdateBatteryLevel(value, bluetoothTransmitter: self)
+            }
             return
         }
 
@@ -124,8 +133,10 @@ class DexcomG7HeartbeatBluetoothTransmitter: BluetoothTransmitter, StandardBatte
     }
 
     func updateBatteryLevel() {
-        guard let batteryLevelCharacteristic else { return }
-        readValueForCharacteristic(for: batteryLevelCharacteristic)
+        runOnCentralQueue { [weak self] in
+            guard let self, let batteryLevelCharacteristic = self.batteryLevelCharacteristic else { return }
+            self.readValueForCharacteristic(for: batteryLevelCharacteristic)
+        }
     }
 
     override func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {

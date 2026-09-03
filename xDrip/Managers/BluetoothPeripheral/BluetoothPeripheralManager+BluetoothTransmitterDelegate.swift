@@ -20,6 +20,7 @@ extension BluetoothPeripheralManager: BluetoothTransmitterDelegate {
     
     /// Persists a genuine standard BLE Battery Level against the exact active heartbeat peripheral.
     func didUpdateBatteryLevel(_ batteryLevel: Int, bluetoothTransmitter: BluetoothTransmitter) {
+        dispatchPrecondition(condition: .onQueue(.main))
         guard let index = bluetoothTransmitters.firstIndex(of: bluetoothTransmitter),
               bluetoothPeripherals.indices.contains(index) else { return }
         batteryHistoryManager.record(
