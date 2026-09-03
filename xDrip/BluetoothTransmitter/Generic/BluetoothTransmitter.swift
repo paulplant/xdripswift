@@ -223,6 +223,11 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         nil
     }
 
+    /// Override for transmitters whose notification window cannot tolerate another centralQueue turn.
+    func shouldSetNotifyValueInline() -> Bool {
+        false
+    }
+
     /// gets peripheral connection status, nil if peripheral not existing yet
     func getConnectionStatus() -> CBPeripheralState? {
         return peripheral?.state
@@ -419,11 +424,14 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         if let peripheral = peripheral {
             trace("in setNotifyValue, for peripheral with name %{public}@, setting notify for characteristic %{public}@, to %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .debug, deviceName ?? "'unknown'", characteristic.uuid.uuidString, enabled.description)
 
-            // Keep CoreBluetooth operations queued after the current delegate callback has returned.
-            // Several transmitter families subscribe while handling characteristic discovery, and
-            // issuing the request inline changed the connection sequencing used before version 7.
-            centralQueue.async {
+            // Keep the pre-version 7 queued sequencing unless a transmitter has a short-lived
+            // notification window and is already executing inside its CoreBluetooth callback.
+            if shouldSetNotifyValueInline(), DispatchQueue.getSpecific(key: centralQueueSpecificKey) != nil {
                 peripheral.setNotifyValue(enabled, for: characteristic)
+            } else {
+                centralQueue.async {
+                    peripheral.setNotifyValue(enabled, for: characteristic)
+                }
             }
         } else {
             trace("in setNotifyValue, for peripheral with name %{public}@, failed to set notify for characteristic %{public}@, to %{public}@", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .error, deviceName ?? "'unknown'", characteristic.uuid.uuidString, enabled.description)
