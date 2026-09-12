@@ -1181,6 +1181,8 @@ final class CareLinkTests: XCTestCase {
 
     @MainActor
     func testBlockedTherapyImportCannotBlockGlucoseOrAnotherPoll() async throws {
+        // This manager uses the wall clock, unlike the parser tests with an injected date.
+        URLProtocolStub.usesCurrentGlucoseTime = true
         let defaultsSnapshot = CareLinkDefaultsSnapshot(keys: [
             .isMaster,
             .followerDataSourceType,
@@ -1913,6 +1915,7 @@ private final class URLProtocolStub: URLProtocol {
     static var refreshCount = 0
     static var directPeriodicUnavailable = false
     static var emptyPersonalAccount = false
+    static var usesCurrentGlucoseTime = false
     static var pumpOnly = false
     static var logoutDelay: TimeInterval = 0
     static var refreshDelay: TimeInterval = 0
@@ -1923,6 +1926,7 @@ private final class URLProtocolStub: URLProtocol {
     static var requestBodies: [[String: String]] = []
 
     static func reset() {
+        usesCurrentGlucoseTime = false
         lock.lock()
         role = "PATIENT_OUS"
         route = .periodic
@@ -2104,7 +2108,7 @@ private final class URLProtocolStub: URLProtocol {
     private func glucose(wrapped: Bool = false) {
         let payload: [String: Any] = Self.pumpOnly
             ? ["activeInsulin": ["amount": 1.25, "datetime": 1_800_000_000_000]]
-            : ["lastSG": ["sg": 123, "timestamp": 1_800_000_000_000]]
+            : ["lastSG": ["sg": 123, "timestamp": Self.usesCurrentGlucoseTime ? Date().timeIntervalSince1970 * 1000 : 1_800_000_000_000]]
         respond(200, wrapped ? ["patientData": payload] : payload)
     }
 

@@ -126,6 +126,8 @@ final class WatchStateModel: NSObject, ObservableObject {
     @Published var requestingDataIconColor: Color = ConstantsAppleWatch.requestingDataIconColorInactive
     @Published var lastComplicationUpdateTimeStamp: Date = .distantPast
 
+    @Published var therapyMetrics: TherapyMetricsSnapshot?
+    var resolvedTherapyMetrics: TherapyMetricsSnapshot { therapyMetrics ?? .external(aidStatus) }
     @Published var aidStatus: AIDStatus?
 
     // we use the following to record when the user has manually requested a state update on each view so that we can trigger the animation on just this view
@@ -451,13 +453,11 @@ final class WatchStateModel: NSObject, ObservableObject {
     }
 
     func aidStatusIOBString() -> String {
-        guard let aidStatus, aidStatus.presentation().hasFreshData, let iob = aidStatus.iob else { return "-U" }
-        return "\(iob.round(toDecimalPlaces: 2).stringWithoutTrailingZeroes)U"
+        resolvedTherapyMetrics.iob.formatted(isIOB: true)
     }
 
     func aidStatusCOBString() -> String {
-        guard let aidStatus, aidStatus.presentation().hasFreshData, let cob = aidStatus.cob else { return "-g" }
-        return "\(cob.round(toDecimalPlaces: 0).stringWithoutTrailingZeroes)g"
+        resolvedTherapyMetrics.cob.formatted(isIOB: false)
     }
 
     func aidStatusActivityAgeString() -> String {
@@ -703,6 +703,7 @@ final class WatchStateModel: NSObject, ObservableObject {
         secondsUntilHeartBeatDisconnectWarning = dictionary["secondsUntilHeartBeatDisconnectWarning"] as? Int ?? 0
         keepAliveIsDisabled = dictionary["keepAliveIsDisabled"] as? Bool ?? false
 
+        therapyMetrics = (dictionary["therapyMetrics"] as? [String: Any]).flatMap { try? JSONSerialization.data(withJSONObject: $0) }.flatMap { try? JSONDecoder().decode(TherapyMetricsSnapshot.self, from: $0) }
         if let aidStatusDictionary = dictionary["aidStatus"] as? [String: Any],
            let data = try? JSONSerialization.data(withJSONObject: aidStatusDictionary),
            let decodedStatus = try? JSONDecoder().decode(AIDStatus.self, from: data) {

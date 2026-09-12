@@ -40,12 +40,13 @@ extension XDripWidget.Entry {
         var keepAliveDisabledMessage: String?
         
         var aidStatus: AIDStatus?
+        var therapyMetrics: TherapyMetricsSnapshot? = nil
         
         var bgUnitString: String
         var bgValueInMgDl: Double?
         var bgReadingDate: Date?
                 
-        init(bgReadingValues: [Double]? = nil, bgReadingDates: [Date]? = nil, isMgDl: Bool? = true, slopeOrdinal: Int? = 0, deltaValueInUserUnit: Double? = nil, urgentLowLimitInMgDl: Double? = 60, lowLimitInMgDl: Double? = 80, highLimitInMgDl: Double? = 180, urgentHighLimitInMgDl: Double? = 250, dataSourceDescription: String? = "", followerPatientName: String?, keepAliveDisabledMessage: String? = nil, aidStatus: AIDStatus? = nil, allowStandByHighContrast: Bool? = true, forceStandByBigNumbers: Bool? = false) {
+        init(bgReadingValues: [Double]? = nil, bgReadingDates: [Date]? = nil, isMgDl: Bool? = true, slopeOrdinal: Int? = 0, deltaValueInUserUnit: Double? = nil, urgentLowLimitInMgDl: Double? = 60, lowLimitInMgDl: Double? = 80, highLimitInMgDl: Double? = 180, urgentHighLimitInMgDl: Double? = 250, dataSourceDescription: String? = "", followerPatientName: String?, keepAliveDisabledMessage: String? = nil, aidStatus: AIDStatus? = nil, therapyMetrics: TherapyMetricsSnapshot? = nil, allowStandByHighContrast: Bool? = true, forceStandByBigNumbers: Bool? = false) {
             self.bgReadingValues = bgReadingValues
             self.bgReadingDates = bgReadingDates
             self.isMgDl = isMgDl ?? true
@@ -62,6 +63,7 @@ extension XDripWidget.Entry {
             self.keepAliveDisabledMessage = keepAliveDisabledMessage
             
             self.aidStatus = aidStatus
+            self.therapyMetrics = therapyMetrics
             
             self.bgValueInMgDl = (bgReadingValues?.count ?? 0) > 0 ? bgReadingValues?[0] : nil
             self.bgReadingDate = (bgReadingDates?.count ?? 0) > 0 ? bgReadingDates?[0] : nil
