@@ -50,6 +50,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
     private let presentTextEntryView: (BluetoothPeripheralTextEntry) -> Void
     private let presentSelectionListView: (BluetoothPeripheralSelectionList) -> Void
     private let presentReadSuccessView: (TransmitterReadSuccessDisplay, String) -> Void
+    private let presentSignalStrengthView: (BluetoothPeripheral) -> Void
     private let presentBatteryHistoryView: (NSManagedObjectID) -> Void
 
     var onlineHelpTopic: OnlineHelpTopic {
@@ -71,6 +72,8 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
     private var cachedTransmitterReadSuccessSummaryText: String?
     private var cachedTransmitterReadSuccessSummaryIndicatorColor: Color?
     private var transmitterReadSuccessTimer: Timer?
+    private var signalStrengthTimer: Timer?
+    private var signalStrengthVisible = false
     private var didAddObservers = false
     private var didStart = false
 
@@ -93,7 +96,8 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         presentTextEntryView: @escaping (BluetoothPeripheralTextEntry) -> Void,
         presentSelectionListView: @escaping (BluetoothPeripheralSelectionList) -> Void,
         presentReadSuccessView: @escaping (TransmitterReadSuccessDisplay, String) -> Void,
-        presentBatteryHistoryView: @escaping (NSManagedObjectID) -> Void
+        presentBatteryHistoryView: @escaping (NSManagedObjectID) -> Void,
+        presentSignalStrengthView: @escaping (BluetoothPeripheral) -> Void
     ) {
         self.bluetoothPeripheral = bluetoothPeripheral
         self.expectedBluetoothPeripheralType = expectedBluetoothPeripheralType
@@ -107,6 +111,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
         self.presentSelectionListView = presentSelectionListView
         self.presentReadSuccessView = presentReadSuccessView
         self.presentBatteryHistoryView = presentBatteryHistoryView
+        self.presentSignalStrengthView = presentSignalStrengthView
         // New Dexcom devices already have their identifier from the setup screen.
         self.transmitterIdTempValue = bluetoothPeripheral?.blePeripheral.transmitterId ?? dexcomConfiguration?.transmitterID
         self.dexcomG6BluetoothSlot = (bluetoothPeripheral as? DexcomG5)?
@@ -203,6 +208,7 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
     }
 
     func stop() {
+        setSignalStrengthVisible(false)
         stopTransmitterReadSuccessTimer()
         removeObserversIfNeeded()
         bluetoothPeripheralManager?.stopScanningForNewDevice()
@@ -325,6 +331,8 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
             detail: bluetoothPeripheral?.blePeripheral.lastConnectionStatusChangeTimeStamp?.toStringInUserLocale(timeStyle: .short, dateStyle: .short) ?? ""
         ))
 
+        rows.append(signalStrengthRow())
+
         if expectedBluetoothPeripheralType.needsTransmitterId() {
             rows.append(row(
                 id: "transmitter-id",
@@ -357,6 +365,51 @@ final class BluetoothPeripheralDetailState: NSObject, ObservableObject {
 
 
         return rows
+    }
+
+    func setSignalStrengthVisible(_ visible: Bool) {
+        signalStrengthVisible = visible
+        updateSignalStrengthPolling(active: visible && UIApplication.shared.applicationState == .active)
+    }
+
+    func updateSignalStrengthPolling(active: Bool) {
+        signalStrengthTimer?.invalidate()
+        signalStrengthTimer = nil
+        guard signalStrengthVisible, active else { return }
+        refreshSignalStrength()
+        signalStrengthTimer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+            self?.refreshSignalStrength()
+        }
+        if let signalStrengthTimer { RunLoop.main.add(signalStrengthTimer, forMode: .common) }
+    }
+
+    private func signalStrengthTransmitter() -> BluetoothTransmitter? {
+        guard let bluetoothPeripheral else { return nil }
+        return bluetoothPeripheralManager?.getBluetoothTransmitter(for: bluetoothPeripheral, createANewOneIfNecesssary: false)
+    }
+
+    private func refreshSignalStrength() {
+        guard UIApplication.shared.applicationState == .active else { return }
+        signalStrengthTransmitter()?.readSignalStrength()
+        refresh()
+    }
+
+    private func signalStrengthRow() -> BluetoothPeripheralDetailRow {
+        var detail = Texts_BluetoothPeripheralView.waiting
+        var color = Color.gray
+        if let sample = signalStrengthTransmitter()?.signalStrength {
+            detail = "\(sample.rssi) dBm"
+            if sample.isCurrent() {
+                color = sample.band.color
+            }
+        }
+        return row(id: "signal-strength", title: Texts_BluetoothPeripheralView.signalStrength,
+                   detail: detail, detailIndicator: SettingsIndicator(color: color), detailLineLimit: 1,
+                   showsDisclosure: bluetoothPeripheral != nil, isEnabled: bluetoothPeripheral != nil,
+                   action: { [weak self] in
+                       guard let self, let peripheral = self.bluetoothPeripheral else { return }
+                       self.presentSignalStrengthView(peripheral)
+                   })
     }
 
     private func genericHeartbeatBatteryLevel() -> Int? {
@@ -2964,6 +3017,12 @@ private extension BluetoothPeripheralDetailState {
 // MARK: - Generic Bluetooth Delegate
 
 extension BluetoothPeripheralDetailState: BluetoothTransmitterDelegate {
+    // The transmitter delivers RSSI callbacks on main, including discovery samples.
+    func didUpdateSignalStrength(bluetoothTransmitter: BluetoothTransmitter) {
+        guard signalStrengthVisible else { return }
+        refreshOnMain()
+    }
+
     func didUpdateBatteryLevel(_ batteryLevel: Int, bluetoothTransmitter: BluetoothTransmitter) {
         bluetoothPeripheralManager?.didUpdateBatteryLevel(batteryLevel, bluetoothTransmitter: bluetoothTransmitter)
         // The manager persists the genuine reading against this peripheral; then rebuild the rows so

@@ -10,6 +10,7 @@ import SwiftUI
 
 /// Native detail screen for an existing or newly configured Bluetooth peripheral.
 struct BluetoothPeripheralDetailView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var state: BluetoothPeripheralDetailState
 
     var body: some View {
@@ -94,7 +95,14 @@ struct BluetoothPeripheralDetailView: View {
             }
         }
         .alert(item: $state.pendingAlert, content: makeAlert)
-        .onAppear(perform: state.start)
+        .onAppear {
+            state.start()
+            state.setSignalStrengthVisible(true)
+        }
+        .onDisappear { state.setSignalStrengthVisible(false) }
+        .onChange(of: scenePhase) { phase in
+            state.updateSignalStrengthPolling(active: phase == .active)
+        }
         .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? 780 : .infinity)
         .frame(maxWidth: .infinity)
     }

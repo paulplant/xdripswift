@@ -19,6 +19,50 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     /// variable : it can get a new value during app run, will be used by rootviewcontroller's that want to receive info
     public weak var bluetoothTransmitterDelegate: BluetoothTransmitterDelegate?
     
+    // Core Bluetooth owns writes on centralQueue. UI readers take only a short value-copy lock.
+    private let signalStrengthLock = NSLock()
+    private var latestSignalStrength: BluetoothSignalStrength?
+    private var signalStrengthRequestStartedAt: Date?
+
+    /// In-memory reception sample, retained through normal intermittent disconnections.
+    var signalStrength: BluetoothSignalStrength? {
+        signalStrengthLock.lock()
+        defer { signalStrengthLock.unlock() }
+        return latestSignalStrength
+    }
+
+    func readSignalStrength() {
+        runOnCentralQueue { [weak self] in
+            guard let self else { return }
+            guard let peripheral = self.peripheral,
+                  peripheral.state == .connected, self.centralManager?.state == .poweredOn else { return }
+            // Allow a retry if Core Bluetooth never completes an earlier request.
+            if let startedAt = self.signalStrengthRequestStartedAt,
+               Date().timeIntervalSince(startedAt) < 10 { return }
+            self.signalStrengthRequestStartedAt = Date()
+            peripheral.readRSSI()
+        }
+    }
+
+    private func recordSignalStrength(_ rssi: Int) {
+        guard let sample = BluetoothSignalStrength(rssi: rssi, previous: signalStrength) else { return }
+        signalStrengthLock.lock()
+        latestSignalStrength = sample
+        signalStrengthLock.unlock()
+        dispatchToMain { [weak self] in
+            guard let self else { return }
+            self.bluetoothTransmitterDelegate?.didUpdateSignalStrength(bluetoothTransmitter: self)
+            NotificationCenter.default.post(name: .bluetoothSignalStrengthDidChange, object: self)
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
+        guard peripheral === self.peripheral else { return }
+        signalStrengthRequestStartedAt = nil
+        guard error == nil, peripheral.state == .connected else { return }
+        recordSignalStrength(RSSI.intValue)
+    }
+
     // MARK: - private properties
     /// whether we should auto‑reconnect after the *next* disconnect callback (explicitly controlled)
     private var shouldReconnectOnNextDisconnect = true
@@ -627,6 +671,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         if let deviceAddress = deviceAddress {
             if peripheral.identifier.uuidString == deviceAddress {
                 trace("in didDiscover, stored address matches peripheral address, will try to connect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+                recordSignalStrength(RSSI.intValue)
                 stopScanAndconnect(to: peripheral)
             } else {
                 trace("in didDiscover, stored address does not match peripheral address, ignoring this device", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
@@ -639,6 +684,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
                 if (peripheral.name?.range(of: expectedName, options: .caseInsensitive)) != nil {
                     // peripheral.name is not nil and contains expectedName
                     trace("in didDiscover, new peripheral has expected device name, will try to connect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+                    recordSignalStrength(RSSI.intValue)
                     stopScanAndconnect(to: peripheral)
                 } else {
                     // peripheral.name is nil or does not contain expectedName
@@ -647,6 +693,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
             } else {
                 // we don't expect any specific device name, so let's connect
                 trace("in didDiscover, new peripheral, will try to connect", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
+                recordSignalStrength(RSSI.intValue)
                 stopScanAndconnect(to: peripheral)
             }
         }
@@ -655,6 +702,8 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     /// Shared connection bookkeeping for subclasses with custom discovery flows.
     func handleDidConnectCommon(_ peripheral: CBPeripheral) {
         
+        signalStrengthRequestStartedAt = nil
+        readSignalStrength()
         cancelConnectionTimer()
         scheduleConnectionSetupTimeout()
         // A previous timed-out connect attempt can temporarily disable reconnect.
@@ -770,6 +819,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        signalStrengthRequestStartedAt = nil
         
         timeStampLastStatusUpdate = Date()
         cancelConnectionTimer()
@@ -916,6 +966,7 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
             
             switch restoredPeripheral.state {
             case .connected:
+                readSignalStrength()
                 // On restore while connected, always rediscover services so subclasses can resubscribe ALL required characteristics (not just the cached receive one).
                 trace("didUpdateValueFor, connected, rediscovering services for full resubscribe", log: log, category: ConstantsLog.categoryBlueToothTransmitter, type: .info)
                 restoredPeripheral.discoverServices(self.servicesCBUUIDs)
@@ -1072,5 +1123,91 @@ class BluetoothTransmitter: NSObject, CBCentralManagerDelegate, CBPeripheralDele
         ///     * For an xDrip bridge, we don't expect a specific devicename, in which case the value stays nil
         case notYetConnected (expectedName:String?)
         
+    }
+}
+
+/// Display bands are approximate reception levels, not a measure of successful glucose reads.
+struct BluetoothSignalStrength {
+    enum Band { case strong, moderate, weak }
+
+    // Shared display cutoffs for the dot, gauge and history bands.
+    static let strongFrom = -95
+    static let moderateFrom = -110
+    static let displayRange = -120 ... -50
+
+    let rssi: Int
+    let measuredAt: Date
+    let band: Band
+
+    init?(rssi: Int, measuredAt: Date = Date(), previous: BluetoothSignalStrength? = nil) {
+        // 127 means unavailable. Positive values are not useful BLE reception measurements.
+        guard (-127...0).contains(rssi) else { return nil }
+        self.rssi = rssi
+        self.measuredAt = measuredAt
+        var band: Band = rssi >= Self.strongFrom ? .strong : (rssi >= Self.moderateFrom ? .moderate : .weak)
+        // Keep a two-dBm margin around a recent band's boundary to avoid flickering colours.
+        if let previous, (0..<15).contains(measuredAt.timeIntervalSince(previous.measuredAt)) {
+            switch previous.band {
+            case .strong where rssi >= Self.strongFrom - 2: band = .strong
+            case .moderate where ((Self.moderateFrom - 2) ... (Self.strongFrom + 1)).contains(rssi): band = .moderate
+            case .weak where rssi < Self.moderateFrom + 2: band = .weak
+            default: break
+            }
+        }
+        self.band = band
+    }
+
+    func isCurrent(now: Date = Date()) -> Bool {
+        (0..<330).contains(now.timeIntervalSince(measuredAt))
+    }
+}
+
+extension Notification.Name {
+    static let bluetoothSignalStrengthDidChange = Notification.Name("bluetoothSignalStrengthDidChange")
+}
+
+/// Only observations received during this visit belong in the two-minute live chart.
+struct BluetoothSignalStrengthHistory {
+    struct Point: Identifiable {
+        let sample: BluetoothSignalStrength
+        var id: Date { sample.measuredAt }
+    }
+
+    let startedAt: Date
+    private(set) var points = [Point]()
+    private var lastMeasurementAt: Date?
+
+    init(startedAt: Date = Date()) {
+        self.startedAt = startedAt
+    }
+
+    mutating func update(sample: BluetoothSignalStrength?, now: Date) {
+        points.removeAll { $0.sample.measuredAt < now.addingTimeInterval(-120) }
+        guard let sample, sample.measuredAt >= startedAt, sample.measuredAt <= now,
+              lastMeasurementAt.map({ sample.measuredAt > $0 }) ?? true else { return }
+        guard sample.measuredAt >= now.addingTimeInterval(-120) else { return }
+        points.append(Point(sample: sample))
+        lastMeasurementAt = sample.measuredAt
+    }
+}
+
+/// Expands to retain the weakest and strongest displayed signals for one visit.
+struct BluetoothSignalStrengthGauge {
+    private(set) var lowerBound = -120
+    private(set) var upperBound = -80
+    private(set) var minimumRSSI: Int?
+    private(set) var maximumRSSI: Int?
+
+    mutating func observe(_ sample: BluetoothSignalStrength?) {
+        guard let sample else { return }
+        minimumRSSI = min(minimumRSSI ?? sample.rssi, sample.rssi)
+        maximumRSSI = max(maximumRSSI ?? sample.rssi, sample.rssi)
+        // Leave space beyond a new extreme so its marker stays inside the gauge.
+        if sample.rssi < lowerBound { lowerBound = sample.rssi - 3 }
+        if sample.rssi > upperBound { upperBound = sample.rssi + 3 }
+    }
+
+    func position(for rssi: Int) -> Double {
+        min(1, max(0, Double(rssi - lowerBound) / Double(upperBound - lowerBound)))
     }
 }
